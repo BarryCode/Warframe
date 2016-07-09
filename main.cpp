@@ -1,17 +1,12 @@
 /*
-* Warframe D3D Hack Source V1.0 by Nseven
+* Warframe D3D Hack Source V1.1 by Nseven
 
 How to compile:
 - download and install "Microsoft Visual Studio Express 2015 for Windows DESKTOP" https://www.visualstudio.com/en-us/products/visual-studio-express-vs.aspx
-- download and install "DirectX Software Development Kit (June 2010)" https://www.microsoft.com/en-us/download/details.aspx?id=6812
 
 - open wfdxhook.vcxproj (not wfdxhook.vcxproj.filters) with Visual Studio 2015 (Program Files (x86)\Microsoft Visual Studio 14.0\Common7\IDE\WDExpress.exe)
-- change Debug to Release
 - select x86(32bit) or x64(64bit)
-- click: project -> properties -> configuration properties -> C/C++ -> additional include directories and add this: $(DXSDK_DIR)include;$(IncludePath)
-- click: project -> properties -> configuration properties -> linker -> additional library directories and add: $(DXSDK_DIR)lib\x86;$(LibraryPath) or $(DXSDK_DIR)lib\x64;$(LibraryPath)
-- click: project -> properties -> configuration properties -> general -> character set -> change to "not set"
-- to compile dll press f7 or click the green triangle
+- compile dll, press f7 or click the green triangle
 
 x86 compiled dll will be in WFDXHook\Release folder
 x64 compiled dll will be in WFDXHook\x64\Release folder
@@ -26,7 +21,6 @@ How to use:
 - click OK, press PLAY
 - if x86 -> inject dll in main screen into Warframe.exe
 - if x64 -> inject dll in main screen into Warframe.x64.exe
-- inject in window mode or borderless fullscreen, real fullscreen can cause problems
 
 Menu key:
 - insert
@@ -283,11 +277,13 @@ void BuildMenu(LPDIRECT3DDEVICE9 pDevice)
 
 HRESULT APIENTRY SetVertexShaderConstantF_hook(LPDIRECT3DDEVICE9 pDevice, UINT StartRegister, const float *pConstantData, UINT Vector4fCount)
 {
-	if (pConstantData == NULL)
-		return SetVertexShaderConstantF_orig(pDevice, StartRegister, pConstantData, Vector4fCount);
+	if (pConstantData != NULL)
+	{
+		//pConstantDataFloat = (float*)pConstantData;
 
-	mStartRegister = StartRegister;
-	mVector4fCount = Vector4fCount;
+		mStartRegister = StartRegister;
+		mVector4fCount = Vector4fCount;
+	}
 
 	return SetVertexShaderConstantF_orig(pDevice, StartRegister, pConstantData, Vector4fCount);
 }
@@ -313,11 +309,11 @@ HRESULT APIENTRY SetStreamSource_hook(LPDIRECT3DDEVICE9 pDevice, UINT StreamNumb
 
 HRESULT APIENTRY SetVertexShader_hook(LPDIRECT3DDEVICE9 pDevice, IDirect3DVertexShader9 *veShader)
 {
-	if (veShader == NULL)
-		return SetVertexShader_orig(pDevice, veShader);
-
-	vShader = veShader;
-	vShader->GetFunction(NULL, &vSize);
+	if (veShader != NULL)
+	{
+		vShader = veShader;
+		vShader->GetFunction(NULL, &vSize);
+	}
 
 	return SetVertexShader_orig(pDevice, veShader);
 }
@@ -326,11 +322,11 @@ HRESULT APIENTRY SetVertexShader_hook(LPDIRECT3DDEVICE9 pDevice, IDirect3DVertex
 
 HRESULT APIENTRY SetPixelShader_hook(LPDIRECT3DDEVICE9 pDevice, IDirect3DPixelShader9 *piShader)
 {
-	if (piShader == NULL)
-		return SetPixelShader_orig(pDevice, piShader);
-
-	pShader = piShader;
-	pShader->GetFunction(NULL, &pSize);
+	if (piShader != NULL)
+	{
+		pShader = piShader;
+		pShader->GetFunction(NULL, &pSize);
+	}
 
 	return SetPixelShader_orig(pDevice, piShader);
 }
@@ -360,7 +356,8 @@ HRESULT APIENTRY DrawIndexedPrimitive_hook(IDirect3DDevice9* pDevice, D3DPRIMITI
 		else if (!PLAYERS && MODELS && chams == 2)
 		{
 			float PvERed[4] = { 1.0f, 0.0f, 0.0f, 3.0f };
-			pDevice->SetPixelShaderConstantF(41, PvERed, 1); //41red, 42green, 43blue, 44, 45, 46
+			pDevice->SetPixelShaderConstantF(50, PvERed, 1);//50red, 51green, 52blue
+			//pDevice->SetPixelShaderConstantF(41, PvERed, 1); //41red, 42green, 43blue, 44, 45, 46
 		}
 		else if (PLAYERS && chams == 3)
 		{
@@ -410,7 +407,8 @@ HRESULT APIENTRY DrawIndexedPrimitive_hook(IDirect3DDevice9* pDevice, D3DPRIMITI
 		else if (!PLAYERS && MODELS && chams == 2)
 		{
 			float PvEGreen[4] = { 0.0f, 1.0f, 0.0f, 3.0f };
-			pDevice->SetPixelShaderConstantF(42, PvEGreen, 1); //41red, 42green, 43blue
+			pDevice->SetPixelShaderConstantF(51, PvEGreen, 1);//50red, 51green, 52blue
+			//pDevice->SetPixelShaderConstantF(42, PvEGreen, 1); //41red, 42green, 43blue
 		}
 		else if (PLAYERS && chams == 3)
 		{
@@ -472,7 +470,8 @@ HRESULT APIENTRY DrawIndexedPrimitive_hook(IDirect3DDevice9* pDevice, D3DPRIMITI
 			countnum = -1;
 		if (countnum == NumVertices / 10 || countnum == vSize / 10)
 			if (pSize > 44 && GetAsyncKeyState('I') & 1) //press I to log to log.txt
-				Log("Stride == %d && NumVertices == %d && primCount == %d && vSize == %d && pSize == %d && mStartRegister == %d && mVector4fCount == %d && vdesc.Size == %d", Stride, NumVertices, primCount, vSize, pSize, mStartRegister, mVector4fCount, vdesc.Size);
+				Log("texCRC == %x && Stride == %d && NumVertices == %d && primCount == %d && vSize == %d && pSize == %d && mStartRegister == %d && mVector4fCount == %d && vdesc.Size == %d && startIndex == %d", texCRC, Stride, NumVertices, primCount, vSize, pSize, mStartRegister, mVector4fCount, vdesc.Size, startIndex);
+				//Log("Stride == %d && NumVertices == %d && primCount == %d && vSize == %d && pSize == %d && mStartRegister == %d && mVector4fCount == %d && vdesc.Size == %d", Stride, NumVertices, primCount, vSize, pSize, mStartRegister, mVector4fCount, vdesc.Size);
 		pDevice->SetRenderState(D3DRS_FILLMODE, D3DFILL_SOLID);
 		if (countnum == NumVertices / 10 || countnum == vSize / 10)
 		{
@@ -511,6 +510,9 @@ HRESULT APIENTRY DrawPrimitive_hook(IDirect3DDevice9* pDevice, D3DPRIMITIVETYPE 
 
 HRESULT APIENTRY EndScene_hook(IDirect3DDevice9* pDevice)
 {
+	//sprite
+	PreClear(pDevice);
+
 	if (FirstInit == FALSE)
 	{
 		FirstInit = TRUE;
@@ -534,7 +536,7 @@ HRESULT APIENTRY EndScene_hook(IDirect3DDevice9* pDevice)
 		//ShaderBufferSubB->Release();
 
 		//generate circle shader
-		DX9CreateEllipseShader(pDevice);
+		//DX9CreateEllipseShader(pDevice);
 
 		//load settings
 		crosshair = Load("Crosshair", "Crosshair", crosshair, GetDirectoryFile("settings.ini"));
@@ -591,9 +593,12 @@ HRESULT APIENTRY EndScene_hook(IDirect3DDevice9* pDevice)
 			//esp 2
 			if (esp == 2 && EspInfo[i].iTeam == 1 && EspInfo[i].vOutX > 1 && EspInfo[i].vOutY > 1 && EspInfo[i].RealDistance > 3.0f)
 			{
-				DWORD col[4] = { 0xff00ff00, 0xff00ff00, 0xff00ff00, 0xff00ff00 };//green
+				//drawpic
+				PrePresent(pDevice, (int)EspInfo[i].vOutX - 32, (int)EspInfo[i].vOutY - 20);
+
+				//DWORD col[4] = { 0xff00ff00, 0xff00ff00, 0xff00ff00, 0xff00ff00 };//green
 				//show ellipse
-				DX9DrawEllipse(pDevice, (int)EspInfo[i].vOutX - 12, (int)EspInfo[i].vOutY - 10, 25, 35, 1, col);
+				//DX9DrawEllipse(pDevice, (int)EspInfo[i].vOutX - 12, (int)EspInfo[i].vOutY - 10, 25, 35, 1, col);
 
 				//draw real distance
 				DrawString(pFont, (int)EspInfo[i].vOutX - 9, (int)EspInfo[i].vOutY, Green, "%.f", EspInfo[i].RealDistance*2.0f);
@@ -605,14 +610,17 @@ HRESULT APIENTRY EndScene_hook(IDirect3DDevice9* pDevice)
 
 			if (items == 2 && EspInfo[i].iTeam == 2 && EspInfo[i].vOutX > 1 && EspInfo[i].vOutY > 1)
 			{
+				//drawpic
+				PrePresent2(pDevice, (int)EspInfo[i].vOutX - 32, (int)EspInfo[i].vOutY - 20);
+
 				//DWORD col[4] = { 0xffffff00, 0xffffff00, 0xffffff00, 0xffffff00 };//yellow
-				DX9DrawEllipse(pDevice, (int)EspInfo[i].vOutX - 12, (int)EspInfo[i].vOutY - 10, 15, 15, 2, &EspInfo[i].cColor);
+				//DX9DrawEllipse(pDevice, (int)EspInfo[i].vOutX - 12, (int)EspInfo[i].vOutY - 10, 15, 15, 2, &EspInfo[i].cColor);
 				DrawString(pFont, (int)EspInfo[i].vOutX, (int)EspInfo[i].vOutY, EspInfo[i].cColor, EspInfo[i].oName);
 			}
 
 			//aimfov
-			float radiusx = espfov * (ScreenCenterX / 100);
-			float radiusy = espfov * (ScreenCenterY / 100);
+			float radiusx = espfov * (ScreenCenterX / 100.0f);
+			float radiusy = espfov * (ScreenCenterY / 100.0f);
 
 			//get crosshairdistance
 			EspInfo[i].CrosshairDistance = GetDistance(EspInfo[i].vOutX, EspInfo[i].vOutY, ScreenCenterX, ScreenCenterY);
@@ -654,8 +662,11 @@ HRESULT APIENTRY EndScene_hook(IDirect3DDevice9* pDevice)
 			//change color to white if best target is found
 			if (esp == 2 && EspInfo[BestTarget].iTeam == 1 && EspInfo[BestTarget].vOutX > 1 && EspInfo[BestTarget].vOutY > 1 && EspInfo[BestTarget].RealDistance > 3.0f)
 			{
-				DWORD col[4] = { 0xffffffff, 0xffffffff, 0xffffffff, 0xffffffff };
-				DX9DrawEllipse(pDevice, (int)EspInfo[BestTarget].vOutX - 12, (int)EspInfo[BestTarget].vOutY - 10, 25, 35, 1, col);
+				//drawpic
+				PrePresent3(pDevice, (int)EspInfo[BestTarget].vOutX - 32, (int)EspInfo[BestTarget].vOutY - 20);
+
+				//DWORD col[4] = { 0xffffffff, 0xffffffff, 0xffffffff, 0xffffffff };
+				//DX9DrawEllipse(pDevice, (int)EspInfo[BestTarget].vOutX - 12, (int)EspInfo[BestTarget].vOutY - 10, 25, 35, 1, col);
 				DrawString(pFont, (int)EspInfo[BestTarget].vOutX - 9, (int)EspInfo[BestTarget].vOutY, White, "%.f", EspInfo[BestTarget].RealDistance*2.0f);//EspInfo[BestTarget].RealDistance*2.0f
 			}
 
@@ -769,7 +780,8 @@ HRESULT APIENTRY EndScene_hook(IDirect3DDevice9* pDevice)
 		logger = !logger;
 	if (logger) //&& countnum >= 0)
 	{
-		sprintf((char*)&szString[0], "countnum = %d", countnum);
+		char szString[255];
+		sprintf_s(szString, "countnum = %d", countnum);
 		DrawString(pFont, 220, 100, White, (char*)&szString[0]);
 		DrawString(pFont, 220, 110, Yellow, "hold P to +");
 		DrawString(pFont, 220, 120, Yellow, "hold O to -");
@@ -783,6 +795,34 @@ HRESULT APIENTRY EndScene_hook(IDirect3DDevice9* pDevice)
 
 HRESULT APIENTRY SetTexture_hook(IDirect3DDevice9* pDevice, DWORD Sampler, IDirect3DBaseTexture9 *pTexture)
 {
+	
+	pCurrentTexture = static_cast<IDirect3DTexture9*>(pTexture);
+
+	if (Sampler == 0 && pCurrentTexture)
+	{
+		if (reinterpret_cast<IDirect3DTexture9 *>(pCurrentTexture)->GetType() == D3DRTYPE_TEXTURE)
+		{
+			pCurrentTexture->GetLevelDesc(0, &desc);
+			if (desc.Pool == D3DPOOL_DEFAULT) //warframe
+			//if (desc.Pool == D3DPOOL_MANAGED) //warface
+			{
+				dWidth = desc.Width;
+				dHeight = desc.Height;
+
+				pCurrentTexture->LockRect(0, &pLockedRect, NULL, D3DLOCK_NOOVERWRITE | D3DLOCK_READONLY);
+				//pCurrentTexture->LockRect(0, &pLockedRect, NULL, 0); //few other games
+
+				if (pLockedRect.pBits != NULL)
+				//get crc
+				texCRC = QuickChecksum((DWORD*)pLockedRect.pBits, 1024);
+
+			pCurrentTexture->UnlockRect(0);
+			}
+		}
+	}
+	
+
+	/*
 	//get desc.Width
 	HRESULT hr;
 	if (pTexture != nullptr)
@@ -801,6 +841,7 @@ HRESULT APIENTRY SetTexture_hook(IDirect3DDevice9* pDevice, DWORD Sampler, IDire
 		}
 	}
 	out:
+	*/
 
 	return SetTexture_orig(pDevice, Sampler, pTexture);
 }
@@ -809,26 +850,27 @@ HRESULT APIENTRY SetTexture_hook(IDirect3DDevice9* pDevice, DWORD Sampler, IDire
 
 HRESULT APIENTRY Reset_hook(IDirect3DDevice9* pDevice, D3DPRESENT_PARAMETERS *pPresentationParameters)
 {
+	//DeleteRenderSurfaces();
+
 	if (pFont)
 		pFont->OnLostDevice();
 
 	HRESULT ResetReturn = Reset_orig(pDevice, pPresentationParameters);
+
 	HRESULT cooperativeStat = pDevice->TestCooperativeLevel();
 
 	switch (cooperativeStat)
 	{
 	case D3DERR_DEVICELOST:
-		//Sleep(1000);
-		if (pFont)
-			pFont->OnLostDevice();
+		//Log("D3DERR_DEVICELOST");
 		break;
 	case D3DERR_DEVICENOTRESET:
-		if (pFont)
-			pFont->OnResetDevice();
+		//Log("D3DERR_DEVICENOTRESET");
 		break;
 	case D3DERR_DRIVERINTERNALERROR:
+		//Log("D3DERR_DRIVERINTERNALERROR");
 		break;
-	case D3D_OK:  //drawings here
+	case D3D_OK:
 		break;
 	}
 

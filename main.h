@@ -3,8 +3,16 @@
 #include <fstream>
 #include <d3d9.h>
 #pragma comment(lib, "d3d9.lib")
-#include <d3dx9.h>
-#pragma comment(lib, "d3dx9.lib") 
+
+#include "DXSDK\d3dx9.h"
+#if defined _M_X64
+#pragma comment(lib, "DXSDK/x64/d3dx9.lib") 
+#elif defined _M_IX86
+#pragma comment(lib, "DXSDK/x86/d3dx9.lib")
+#endif
+
+//#include <d3dx9.h>
+//#pragma comment(lib, "d3dx9.lib") 
 #pragma comment(lib, "winmm.lib")
 #include "MinHook/include/MinHook.h" //detour
 using namespace std;
@@ -26,6 +34,14 @@ UINT vSize;
 IDirect3DPixelShader9* pShader;
 UINT pSize;
 
+//texture
+D3DLOCKED_RECT pLockedRect;
+D3DSURFACE_DESC desc;
+IDirect3DTexture9* pCurrentTexture;
+
+//crc
+DWORD texCRC;
+
 //DPvertexshader
 //IDirect3DVertexShader9* DPvShader;
 //UINT DPvSize;
@@ -40,7 +56,6 @@ UINT mVector4fCount;
 
 //gettexture
 LPDIRECT3DBASETEXTURE9 tex = NULL;
-D3DSURFACE_DESC desc;
 int dWidth;
 int dHeight;
 //int dPitch;
@@ -51,13 +66,8 @@ float bestRealDistance;
 //used for logging/cycling through values
 bool logger = false;
 int countnum = -1;
-char szString[64];
 
 bool FirstInit = false; //init once
-
-//D3DLOCKED_RECT d3dlr; //text crc
-
-//DWORD VirtualQReturnAddress = NULL;
 
 //vdesc.Size
 D3DVERTEXBUFFER_DESC vdesc;
@@ -97,7 +107,8 @@ DWORD dwTime = 0; //windowsuptime
 (Stride == 24 && NumVertices == 1619 && primCount == 596 && vSize == 768 && /*pSize == 1724 && */mStartRegister == 18 && mVector4fCount == 1)|| \
 (Stride == 24 && NumVertices == 1619 && primCount == 596 && vSize == 352 && /*pSize == 540 && */mStartRegister == 12 && mVector4fCount == 1)|| \
 (Stride == 24 && NumVertices == 1619 && primCount == 2384 && vSize == 768 && /*pSize == 1724 && */mStartRegister == 18 && mVector4fCount == 1)|| \
-(Stride == 24 && NumVertices == 1619 && primCount == 2384 && vSize == 352 && /*pSize == 540 && */mStartRegister == 12 && mVector4fCount == 1))
+(Stride == 24 && NumVertices == 1619 && primCount == 2384 && vSize == 352 && /*pSize == 540 && */mStartRegister == 12 && mVector4fCount == 1)|| \
+(Stride == 24 && NumVertices == 1619 && primCount == 2384 && vSize == 768 && /*pSize == 1724 && */mStartRegister == 11 && mVector4fCount == 1))
 
 #define CREDITS ((Stride == 24 && NumVertices == 1377 && vSize == 804 && /*pSize == 2612 && */mStartRegister == 12 && mVector4fCount == 1)|| \
 (Stride == 24 && NumVertices == 1432 && vSize == 352 && /*pSize == 540 && */mStartRegister == 12 && mVector4fCount == 1)|| \
@@ -170,154 +181,6 @@ DWORD dwTime = 0; //windowsuptime
 	vdesc.Size == 197952 || \
 	vdesc.Size == 269632)
 
-/*
-//all player models in main menu
-vdesc.Size == 113216 && Stride == 32 && NumVertices == 3538 && primCount == 5907 && vSize == 1392 && pSize == 4524 && mStartRegister == 52 && mVector4fCount == 192
-vdesc.Size == 113216 && Stride == 32 && NumVertices == 3538 && primCount == 5907 && vSize == 1376 && pSize == 2328 && mStartRegister == 52 && mVector4fCount == 192
-vdesc.Size == 113216 && Stride == 32 && NumVertices == 3538 && primCount == 5907 && vSize == 1392 && pSize == 4524 && mStartRegister == 52 && mVector4fCount == 192
-vdesc.Size == 113216 && Stride == 32 && NumVertices == 3538 && primCount == 5907 && vSize == 1392 && pSize == 4524 && mStartRegister == 52 && mVector4fCount == 192
-
-vdesc.Size == 93312 && Stride == 32 && NumVertices == 2916 && primCount == 4696 && vSize == 1356 && pSize == 2076 && mStartRegister == 52 && mVector4fCount == 189
-vdesc.Size == 93312 && Stride == 32 && NumVertices == 2916 && primCount == 4696 && vSize == 1356 && pSize == 2076 && mStartRegister == 52 && mVector4fCount == 189
-vdesc.Size == 93312 && Stride == 32 && NumVertices == 2916 && primCount == 4696 && vSize == 1356 && pSize == 2076 && mStartRegister == 52 && mVector4fCount == 189
-vdesc.Size == 93312 && Stride == 32 && NumVertices == 2916 && primCount == 4696 && vSize == 1356 && pSize == 2076 && mStartRegister == 52 && mVector4fCount == 189
-
-vdesc.Size == 203456 && Stride == 32 && NumVertices == 6358 && primCount == 9898 && vSize == 1392 && pSize == 4700 && mStartRegister == 52 && mVector4fCount == 177
-vdesc.Size == 203456 && Stride == 32 && NumVertices == 6358 && primCount == 9898 && vSize == 1376 && pSize == 2628 && mStartRegister == 52 && mVector4fCount == 177
-vdesc.Size == 203456 && Stride == 32 && NumVertices == 6358 && primCount == 9898 && vSize == 1392 && pSize == 4700 && mStartRegister == 52 && mVector4fCount == 177
-vdesc.Size == 203456 && Stride == 32 && NumVertices == 6358 && primCount == 9898 && vSize == 1392 && pSize == 4700 && mStartRegister == 52 && mVector4fCount == 177
-
-vdesc.Size == 147328 && Stride == 32 && NumVertices == 4604 && primCount == 7266 && vSize == 1356 && pSize == 2076 && mStartRegister == 52 && mVector4fCount == 177
-vdesc.Size == 147328 && Stride == 32 && NumVertices == 4604 && primCount == 7266 && vSize == 1356 && pSize == 2076 && mStartRegister == 52 && mVector4fCount == 177
-vdesc.Size == 147328 && Stride == 32 && NumVertices == 4604 && primCount == 7266 && vSize == 1356 && pSize == 2076 && mStartRegister == 52 && mVector4fCount == 177
-vdesc.Size == 147328 && Stride == 32 && NumVertices == 4604 && primCount == 7266 && vSize == 1356 && pSize == 2076 && mStartRegister == 52 && mVector4fCount == 177
-
-vdesc.Size == 160064 && Stride == 32 && NumVertices == 5002 && primCount == 8414 && vSize == 1392 && pSize == 4700 && mStartRegister == 52 && mVector4fCount == 147
-vdesc.Size == 160064 && Stride == 32 && NumVertices == 5002 && primCount == 8414 && vSize == 1392 && pSize == 4700 && mStartRegister == 52 && mVector4fCount == 147
-vdesc.Size == 245504 && Stride == 32 && NumVertices == 7672 && primCount == 13442 && vSize == 1392 && pSize == 4700 && mStartRegister == 52 && mVector4fCount == 177
-vdesc.Size == 245504 && Stride == 32 && NumVertices == 7672 && primCount == 13442 && vSize == 1392 && pSize == 4700 && mStartRegister == 52 && mVector4fCount == 177
-
-vdesc.Size == 166272 && Stride == 32 && NumVertices == 5196 && primCount == 8212 && vSize == 1332 && pSize == 2076 && mStartRegister == 52 && mVector4fCount == 189
-vdesc.Size == 166272 && Stride == 32 && NumVertices == 5196 && primCount == 8212 && vSize == 1332 && pSize == 2076 && mStartRegister == 52 && mVector4fCount == 189
-vdesc.Size == 166272 && Stride == 32 && NumVertices == 5196 && primCount == 8212 && vSize == 1332 && pSize == 2076 && mStartRegister == 52 && mVector4fCount == 189
-vdesc.Size == 166272 && Stride == 32 && NumVertices == 5196 && primCount == 8212 && vSize == 1332 && pSize == 2076 && mStartRegister == 52 && mVector4fCount == 189
-
-vdesc.Size == 264640 && Stride == 32 && NumVertices == 8270 && primCount == 8182 && vSize == 1392 && pSize == 4708 && mStartRegister == 52 && mVector4fCount == 54
-vdesc.Size == 264640 && Stride == 32 && NumVertices == 8270 && primCount == 8182 && vSize == 1392 && pSize == 4708 && mStartRegister == 52 && mVector4fCount == 54
-vdesc.Size == 264640 && Stride == 32 && NumVertices == 8270 && primCount == 5494 && vSize == 1392 && pSize == 4708 && mStartRegister == 52 && mVector4fCount == 153
-vdesc.Size == 264640 && Stride == 32 && NumVertices == 8270 && primCount == 5494 && vSize == 1392 && pSize == 4708 && mStartRegister == 52 && mVector4fCount == 153
-
-vdesc.Size == 174080 && Stride == 32 && NumVertices == 5440 && primCount == 8608 && vSize == 1392 && pSize == 4700 && mStartRegister == 52 && mVector4fCount == 201
-vdesc.Size == 174080 && Stride == 32 && NumVertices == 5440 && primCount == 8608 && vSize == 1392 && pSize == 4700 && mStartRegister == 52 && mVector4fCount == 201
-vdesc.Size == 174080 && Stride == 32 && NumVertices == 5440 && primCount == 8608 && vSize == 1392 && pSize == 4700 && mStartRegister == 52 && mVector4fCount == 201
-vdesc.Size == 174080 && Stride == 32 && NumVertices == 5440 && primCount == 8608 && vSize == 1376 && pSize == 2628 && mStartRegister == 52 && mVector4fCount == 201
-
-vdesc.Size == 263040 && Stride == 32 && NumVertices == 8220 && primCount == 13434 && vSize == 1356 && pSize == 2076 && mStartRegister == 52 && mVector4fCount == 177
-vdesc.Size == 263040 && Stride == 32 && NumVertices == 8220 && primCount == 13434 && vSize == 1356 && pSize == 2076 && mStartRegister == 52 && mVector4fCount == 177
-vdesc.Size == 263040 && Stride == 32 && NumVertices == 8220 && primCount == 13434 && vSize == 1356 && pSize == 2076 && mStartRegister == 52 && mVector4fCount == 177
-vdesc.Size == 263040 && Stride == 32 && NumVertices == 8220 && primCount == 13434 && vSize == 1356 && pSize == 2076 && mStartRegister == 52 && mVector4fCount == 177
-
-vdesc.Size == 358912 && Stride == 32 && NumVertices == 11216 && primCount == 17579 && vSize == 1392 && pSize == 4700 && mStartRegister == 52 && mVector4fCount == 204
-vdesc.Size == 358912 && Stride == 32 && NumVertices == 11216 && primCount == 17579 && vSize == 1392 && pSize == 4700 && mStartRegister == 52 && mVector4fCount == 204
-vdesc.Size == 358912 && Stride == 32 && NumVertices == 11216 && primCount == 17579 && vSize == 1392 && pSize == 4700 && mStartRegister == 52 && mVector4fCount == 204
-vdesc.Size == 358912 && Stride == 32 && NumVertices == 11216 && primCount == 17579 && vSize == 1392 && pSize == 4700 && mStartRegister == 52 && mVector4fCount == 204
-
-vdesc.Size == 349920 && Stride == 32 && NumVertices == 10935 && primCount == 15665 && vSize == 1392 && pSize == 4700 && mStartRegister == 52 && mVector4fCount == 177
-vdesc.Size == 349920 && Stride == 32 && NumVertices == 10935 && primCount == 15665 && vSize == 1392 && pSize == 4700 && mStartRegister == 52 && mVector4fCount == 177
-vdesc.Size == 349920 && Stride == 32 && NumVertices == 10935 && primCount == 15665 && vSize == 1392 && pSize == 4700 && mStartRegister == 52 && mVector4fCount == 177
-vdesc.Size == 349920 && Stride == 32 && NumVertices == 10935 && primCount == 15665 && vSize == 1392 && pSize == 4700 && mStartRegister == 52 && mVector4fCount == 177
-
-vdesc.Size == 204512 && Stride == 32 && NumVertices == 6391 && primCount == 10362 && vSize == 1392 && pSize == 4268 && mStartRegister == 52 && mVector4fCount == 174
-vdesc.Size == 204512 && Stride == 32 && NumVertices == 6391 && primCount == 10362 && vSize == 1376 && pSize == 1840 && mStartRegister == 52 && mVector4fCount == 174
-vdesc.Size == 204512 && Stride == 32 && NumVertices == 6391 && primCount == 10362 && vSize == 1392 && pSize == 4268 && mStartRegister == 52 && mVector4fCount == 174
-vdesc.Size == 204512 && Stride == 32 && NumVertices == 6391 && primCount == 10362 && vSize == 1392 && pSize == 4268 && mStartRegister == 52 && mVector4fCount == 174
-
-vdesc.Size == 103904 && Stride == 32 && NumVertices == 3247 && primCount == 5186 && vSize == 1392 && pSize == 4700 && mStartRegister == 52 && mVector4fCount == 195
-vdesc.Size == 103904 && Stride == 32 && NumVertices == 3247 && primCount == 5186 && vSize == 1392 && pSize == 4700 && mStartRegister == 52 && mVector4fCount == 195
-vdesc.Size == 103904 && Stride == 32 && NumVertices == 3247 && primCount == 5186 && vSize == 1392 && pSize == 4700 && mStartRegister == 52 && mVector4fCount == 195
-vdesc.Size == 103904 && Stride == 32 && NumVertices == 3247 && primCount == 5186 && vSize == 1376 && pSize == 2628 && mStartRegister == 52 && mVector4fCount == 195
-
-vdesc.Size == 126752 && Stride == 32 && NumVertices == 3961 && primCount == 6474 && vSize == 1392 && pSize == 4700 && mStartRegister == 52 && mVector4fCount == 189
-vdesc.Size == 126752 && Stride == 32 && NumVertices == 3961 && primCount == 6474 && vSize == 1392 && pSize == 4700 && mStartRegister == 52 && mVector4fCount == 189
-vdesc.Size == 126752 && Stride == 32 && NumVertices == 3961 && primCount == 6474 && vSize == 1392 && pSize == 4700 && mStartRegister == 52 && mVector4fCount == 189
-vdesc.Size == 126752 && Stride == 32 && NumVertices == 3961 && primCount == 6474 && vSize == 1392 && pSize == 4700 && mStartRegister == 52 && mVector4fCount == 189
-
-vdesc.Size == 405984 && Stride == 32 && NumVertices == 12687 && primCount == 18354 && vSize == 1392 && pSize == 4016 && mStartRegister == 52 && mVector4fCount == 177
-vdesc.Size == 405984 && Stride == 32 && NumVertices == 12687 && primCount == 18354 && vSize == 1376 && pSize == 1812 && mStartRegister == 52 && mVector4fCount == 177
-vdesc.Size == 405984 && Stride == 32 && NumVertices == 12687 && primCount == 18354 && vSize == 1392 && pSize == 4016 && mStartRegister == 52 && mVector4fCount == 177
-vdesc.Size == 405984 && Stride == 32 && NumVertices == 12687 && primCount == 18354 && vSize == 1392 && pSize == 4016 && mStartRegister == 52 && mVector4fCount == 177
-
-vdesc.Size == 223872 && Stride == 32 && NumVertices == 6996 && primCount == 11646 && vSize == 1356 && pSize == 2060 && mStartRegister == 52 && mVector4fCount == 177
-vdesc.Size == 223872 && Stride == 32 && NumVertices == 6996 && primCount == 11646 && vSize == 1356 && pSize == 2060 && mStartRegister == 52 && mVector4fCount == 177
-vdesc.Size == 223872 && Stride == 32 && NumVertices == 6996 && primCount == 11646 && vSize == 1356 && pSize == 2060 && mStartRegister == 52 && mVector4fCount == 177
-vdesc.Size == 223872 && Stride == 32 && NumVertices == 6996 && primCount == 11646 && vSize == 1356 && pSize == 2060 && mStartRegister == 52 && mVector4fCount == 177
-
-vdesc.Size == 281088 && Stride == 32 && NumVertices == 8784 && primCount == 14132 && vSize == 1356 && pSize == 2096 && mStartRegister == 52 && mVector4fCount == 183
-vdesc.Size == 281088 && Stride == 32 && NumVertices == 8784 && primCount == 14132 && vSize == 1356 && pSize == 2096 && mStartRegister == 52 && mVector4fCount == 183
-vdesc.Size == 281088 && Stride == 32 && NumVertices == 8784 && primCount == 14132 && vSize == 1356 && pSize == 2096 && mStartRegister == 52 && mVector4fCount == 183
-vdesc.Size == 281088 && Stride == 32 && NumVertices == 8784 && primCount == 14132 && vSize == 1100 && pSize == 1056 && mStartRegister == 52 && mVector4fCount == 183
-
-vdesc.Size == 284160 && Stride == 32 && NumVertices == 8880 && primCount == 14089 && vSize == 1392 && pSize == 4724 && mStartRegister == 52 && mVector4fCount == 186
-vdesc.Size == 284160 && Stride == 32 && NumVertices == 8880 && primCount == 14089 && vSize == 1392 && pSize == 4724 && mStartRegister == 52 && mVector4fCount == 186
-vdesc.Size == 284160 && Stride == 32 && NumVertices == 8880 && primCount == 14089 && vSize == 1392 && pSize == 4724 && mStartRegister == 52 && mVector4fCount == 186
-vdesc.Size == 284160 && Stride == 32 && NumVertices == 8880 && primCount == 14089 && vSize == 1392 && pSize == 4724 && mStartRegister == 52 && mVector4fCount == 186
-
-vdesc.Size == 151168 && Stride == 32 && NumVertices == 4724 && primCount == 7046 && vSize == 1100 && pSize == 1056 && mStartRegister == 52 && mVector4fCount == 189
-vdesc.Size == 151168 && Stride == 32 && NumVertices == 4724 && primCount == 7046 && vSize == 1332 && pSize == 2096 && mStartRegister == 52 && mVector4fCount == 189
-vdesc.Size == 151168 && Stride == 32 && NumVertices == 4724 && primCount == 7046 && vSize == 1332 && pSize == 2096 && mStartRegister == 52 && mVector4fCount == 189
-vdesc.Size == 151168 && Stride == 32 && NumVertices == 4724 && primCount == 7046 && vSize == 1332 && pSize == 2096 && mStartRegister == 52 && mVector4fCount == 189
-
-vdesc.Size == 115200 && Stride == 32 && NumVertices == 3600 && primCount == 6017 && vSize == 1356 && pSize == 2060 && mStartRegister == 52 && mVector4fCount == 189
-vdesc.Size == 115200 && Stride == 32 && NumVertices == 3600 && primCount == 6017 && vSize == 1356 && pSize == 2060 && mStartRegister == 52 && mVector4fCount == 189
-vdesc.Size == 115200 && Stride == 32 && NumVertices == 3600 && primCount == 6017 && vSize == 1356 && pSize == 2060 && mStartRegister == 52 && mVector4fCount == 189
-vdesc.Size == 115200 && Stride == 32 && NumVertices == 3600 && primCount == 6017 && vSize == 1356 && pSize == 2060 && mStartRegister == 52 && mVector4fCount == 189
-
-vdesc.Size == 229696 && Stride == 32 && NumVertices == 7178 && primCount == 11782 && vSize == 1356 && pSize == 2060 && mStartRegister == 52 && mVector4fCount == 186
-vdesc.Size == 229696 && Stride == 32 && NumVertices == 7178 && primCount == 11782 && vSize == 1356 && pSize == 2060 && mStartRegister == 52 && mVector4fCount == 186
-vdesc.Size == 229696 && Stride == 32 && NumVertices == 7178 && primCount == 11782 && vSize == 1356 && pSize == 2060 && mStartRegister == 52 && mVector4fCount == 186
-vdesc.Size == 229696 && Stride == 32 && NumVertices == 7178 && primCount == 11782 && vSize == 1356 && pSize == 2060 && mStartRegister == 52 && mVector4fCount == 186
-
-vdesc.Size == 113696 && Stride == 32 && NumVertices == 3553 && primCount == 5886 && vSize == 1356 && pSize == 2060 && mStartRegister == 52 && mVector4fCount == 195
-vdesc.Size == 113696 && Stride == 32 && NumVertices == 3553 && primCount == 5886 && vSize == 1356 && pSize == 2060 && mStartRegister == 52 && mVector4fCount == 195
-vdesc.Size == 113696 && Stride == 32 && NumVertices == 3553 && primCount == 5886 && vSize == 1100 && pSize == 1020 && mStartRegister == 52 && mVector4fCount == 195
-vdesc.Size == 113696 && Stride == 32 && NumVertices == 3553 && primCount == 5886 && vSize == 1356 && pSize == 2060 && mStartRegister == 52 && mVector4fCount == 195
-
-vdesc.Size == 178464 && Stride == 32 && NumVertices == 5577 && primCount == 8811 && vSize == 1392 && pSize == 4708 && mStartRegister == 52 && mVector4fCount == 183
-vdesc.Size == 178464 && Stride == 32 && NumVertices == 5577 && primCount == 8811 && vSize == 1376 && pSize == 2612 && mStartRegister == 52 && mVector4fCount == 183
-vdesc.Size == 178464 && Stride == 32 && NumVertices == 5577 && primCount == 8811 && vSize == 1392 && pSize == 4708 && mStartRegister == 52 && mVector4fCount == 183
-vdesc.Size == 178464 && Stride == 32 && NumVertices == 5577 && primCount == 8811 && vSize == 1392 && pSize == 4708 && mStartRegister == 52 && mVector4fCount == 183
-
-vdesc.Size == 115968 && Stride == 32 && NumVertices == 3624 && primCount == 5562 && vSize == 1356 && pSize == 2060 && mStartRegister == 52 && mVector4fCount == 189
-vdesc.Size == 115968 && Stride == 32 && NumVertices == 3624 && primCount == 5562 && vSize == 1356 && pSize == 2060 && mStartRegister == 52 && mVector4fCount == 189
-vdesc.Size == 115968 && Stride == 32 && NumVertices == 3624 && primCount == 5562 && vSize == 1356 && pSize == 2060 && mStartRegister == 52 && mVector4fCount == 189
-vdesc.Size == 115968 && Stride == 32 && NumVertices == 3624 && primCount == 5562 && vSize == 1356 && pSize == 2060 && mStartRegister == 52 && mVector4fCount == 189
-
-vdesc.Size == 244736 && Stride == 32 && NumVertices == 7648 && primCount == 11306 && vSize == 1356 && pSize == 2076 && mStartRegister == 52 && mVector4fCount == 177
-vdesc.Size == 244736 && Stride == 32 && NumVertices == 7648 && primCount == 11306 && vSize == 1356 && pSize == 2076 && mStartRegister == 52 && mVector4fCount == 177
-vdesc.Size == 244736 && Stride == 32 && NumVertices == 7648 && primCount == 11306 && vSize == 1356 && pSize == 2076 && mStartRegister == 52 && mVector4fCount == 177
-vdesc.Size == 244736 && Stride == 32 && NumVertices == 7648 && primCount == 11306 && vSize == 1356 && pSize == 2076 && mStartRegister == 52 && mVector4fCount == 177
-
-vdesc.Size == 119808 && Stride == 32 && NumVertices == 3744 && primCount == 6006 && vSize == 1356 && pSize == 2076 && mStartRegister == 52 && mVector4fCount == 177
-vdesc.Size == 119808 && Stride == 32 && NumVertices == 3744 && primCount == 6006 && vSize == 1356 && pSize == 2076 && mStartRegister == 52 && mVector4fCount == 177
-vdesc.Size == 119808 && Stride == 32 && NumVertices == 3744 && primCount == 6006 && vSize == 1356 && pSize == 2076 && mStartRegister == 52 && mVector4fCount == 177
-vdesc.Size == 119808 && Stride == 32 && NumVertices == 3744 && primCount == 6006 && vSize == 1356 && pSize == 2076 && mStartRegister == 52 && mVector4fCount == 177
-
-vdesc.Size == 130208 && Stride == 32 && NumVertices == 4069 && primCount == 6542 && vSize == 1392 && pSize == 4700 && mStartRegister == 52 && mVector4fCount == 189
-vdesc.Size == 130208 && Stride == 32 && NumVertices == 4069 && primCount == 6542 && vSize == 1392 && pSize == 4700 && mStartRegister == 52 && mVector4fCount == 189
-vdesc.Size == 130208 && Stride == 32 && NumVertices == 4069 && primCount == 6542 && vSize == 1392 && pSize == 4700 && mStartRegister == 52 && mVector4fCount == 189
-vdesc.Size == 130208 && Stride == 32 && NumVertices == 4069 && primCount == 6542 && vSize == 1392 && pSize == 4700 && mStartRegister == 52 && mVector4fCount == 189
-
-vdesc.Size == 197952 && Stride == 32 && NumVertices == 6186 && primCount == 8148 && vSize == 1392 && pSize == 4700 && mStartRegister == 52 && mVector4fCount == 177
-vdesc.Size == 197952 && Stride == 32 && NumVertices == 6186 && primCount == 8148 && vSize == 1392 && pSize == 4700 && mStartRegister == 52 && mVector4fCount == 177
-vdesc.Size == 197952 && Stride == 32 && NumVertices == 6186 && primCount == 8148 && vSize == 1392 && pSize == 4700 && mStartRegister == 52 && mVector4fCount == 177
-vdesc.Size == 197952 && Stride == 32 && NumVertices == 6186 && primCount == 8148 && vSize == 1392 && pSize == 4700 && mStartRegister == 52 && mVector4fCount == 177
-
-vdesc.Size == 269632 && Stride == 32 && NumVertices == 8426 && primCount == 13302 && vSize == 1332 && pSize == 2076 && mStartRegister == 52 && mVector4fCount == 177
-vdesc.Size == 269632 && Stride == 32 && NumVertices == 8426 && primCount == 13302 && vSize == 1332 && pSize == 2076 && mStartRegister == 52 && mVector4fCount == 177
-vdesc.Size == 269632 && Stride == 32 && NumVertices == 8426 && primCount == 13302 && vSize == 1332 && pSize == 2076 && mStartRegister == 52 && mVector4fCount == 177
-vdesc.Size == 269632 && Stride == 32 && NumVertices == 8426 && primCount == 13302 && vSize == 1332 && pSize == 2076 && mStartRegister == 52 && mVector4fCount == 177
-*/
-
 //==========================================================================================================================
 
 D3DVIEWPORT9 Viewport; //use this viewport
@@ -348,28 +211,25 @@ void Log(const char *fmt, ...)
 	if (logfile.is_open() && text)	logfile << text << endl;
 	logfile.close();
 }
-/*
-DWORD qCRC;
-void *pData;
+
 DWORD QuickChecksum(DWORD *pData, int size)
 {
-if (!pData) { return 0x0; }
+	if (!pData) { return 0x0; }
 
-DWORD sum;
-DWORD tmp;
-sum = *pData;
+	DWORD sum;
+	DWORD tmp;
+	sum = *pData;
 
-for (int i = 1; i < (size / 4); i++)
-{
-tmp = pData[i];
-tmp = (DWORD)(sum >> 29) + tmp;
-tmp = (DWORD)(sum >> 17) + tmp;
-sum = (DWORD)(sum << 3) ^ tmp;
+	for (int i = 1; i < (size / 4); i++)
+	{
+		tmp = pData[i];
+		tmp = (DWORD)(sum >> 29) + tmp;
+		tmp = (DWORD)(sum >> 17) + tmp;
+		sum = (DWORD)(sum << 3) ^ tmp;
+	}
+
+	return sum;
 }
-
-return sum;
-}
-*/
 //==========================================================================================================================
 
 // colors
@@ -508,25 +368,6 @@ VOID DrawBoxWithBorder(LPDIRECT3DDEVICE9 Device, INT x, INT y, INT w, INT h, DWO
 VOID DrawBox(LPDIRECT3DDEVICE9 Device, INT x, INT y, INT w, INT h, DWORD BoxColor)
 {
 	DrawBorder(Device, x, y, w, h, 1, BoxColor);
-}
-
-void DrawBox2(LPDIRECT3DDEVICE9 pD3D9, int x, int y, int w, int h, D3DCOLOR Color)
-{
-	struct Vertex
-	{
-		float x, y, z, ht;
-		DWORD Color;
-	}
-	V[4] = { { x, y + h, 0.0f, 0.0f, Color },{ x, y, 0.0f, 0.0f, Color },{ x + w, y + h, 0.0f, 0.0f, Color },{ x + w, y, 0.0f, 0.0f, Color } };
-	pD3D9->SetTexture(0, NULL);
-	pD3D9->SetPixelShader(0);
-	pD3D9->SetFVF(D3DFVF_XYZRHW | D3DFVF_DIFFUSE);
-	pD3D9->SetRenderState(D3DRS_ALPHABLENDENABLE, true);
-	pD3D9->SetRenderState(D3DRS_DESTBLEND, D3DBLEND_INVSRCALPHA);
-	pD3D9->SetRenderState(D3DRS_ZENABLE, FALSE);
-	pD3D9->SetRenderState(D3DRS_CULLMODE, D3DCULL_NONE);
-	pD3D9->DrawPrimitiveUP(D3DPT_TRIANGLESTRIP, 2, V, sizeof(Vertex));
-	return;
 }
 
 void DrawBox3(IDirect3DDevice9* m_pD3Ddev, int x, int y, int w, int h, D3DCOLOR Color)
@@ -764,200 +605,216 @@ HRESULT GenerateShader(IDirect3DDevice9 *pDevice, IDirect3DPixelShader9 **pShade
 	return S_OK;
 }
 
-/*
-IDirect3DPixelShader9 *sSubA = NULL;
-IDirect3DPixelShader9 *sSubB = NULL;
-char ShaderSubA[] = "ps.1.0 def c0, 0.0f, 0.0f, 1.0f, 0.5f tex t0 sub r0, c0, t0";
-char ShaderSubB[] = "ps.1.0 def c0, 0.0f, 0.0f, 0.5f, 0.5f tex t0 sub r0, c0, t0";
-ID3DXBuffer *ShaderBufferSubA = NULL;
-ID3DXBuffer *ShaderBufferSubB = NULL;
+//=====================================================================================================================
 
-HRESULT GenerateShader(IDirect3DDevice9 *pD3Ddev, IDirect3DPixelShader9 **pShader, float r, float g, float b, bool setzBuf)
+//draw sprites, pic esp v3.0
+LPD3DXSPRITE lpSprite, lpSprite2, lpSprite3 = NULL;
+LPDIRECT3DTEXTURE9 lpSpriteImage, lpSpriteImage2, lpSpriteImage3 = NULL;
+bool bSpriteCreated, bSpriteCreated2, bSpriteCreated3 = false;
+
+bool CreateOverlaySprite(IDirect3DDevice9* pd3dDevice)
 {
-char szShader[256];
-ID3DXBuffer *pShaderBuf = NULL;
-if (setzBuf)
-sprintf_s(szShader, "ps_3_0\ndef c0, %f, %f, %f, %f\nmov oC0,c0\nmov oDepth, c0.x", r, g, b, 1.0f);
-else
-sprintf_s(szShader, "ps_3_0\ndef c0, %f, %f, %f, %f\nmov oC0,c0", r, g, b, 1.0f);
-D3DXAssembleShader(szShader, (strlen(szShader)), NULL, NULL, 0, &pShaderBuf, NULL);
-if (FAILED(pD3Ddev->CreatePixelShader((const DWORD*)pShaderBuf->GetBufferPointer(), pShader)))return E_FAIL;
-return S_OK;
-}
-*/
+	HRESULT hr;
 
-//==========================================================================================================================
-/*
-//generate texture
-LPDIRECT3DTEXTURE9 texRed;
-LPDIRECT3DTEXTURE9 texGreen;
-LPDIRECT3DTEXTURE9 texBlue;
-LPDIRECT3DTEXTURE9 texYellow;
-LPDIRECT3DTEXTURE9 texTur;
-
-const BYTE bRed[60] =
-{
-0x42, 0x4D, 0x3C, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-0x00, 0x36, 0x00, 0x00, 0x00, 0x28, 0x00, 0x00, 0x00,
-0x01, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x01,
-0x00, 0x20, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-0x00, 0x00, 0x12, 0x0B, 0x00, 0x00, 0x12, 0x0B, 0x00,
-0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-0x00, 0x00, 0xFF, 0x00, 0x00, 0x00
-};
-
-const BYTE bGreen[60] =
-{
-0x42, 0x4D, 0x3C, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-0x00, 0x36, 0x00, 0x00, 0x00, 0x28, 0x00, 0x00, 0x00,
-0x01, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x01,
-0x00, 0x18, 0x00, 0x00, 0x00, 0x00, 0x00, 0x06, 0x00,
-0x00, 0x00, 0x12, 0x0B, 0x00, 0x00, 0x12, 0x0B, 0x00,
-0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-0x00, 0xFF, 0x00, 0x00, 0x00, 0x00
-};
-
-const BYTE bBlue[60] =
-{
-0x42, 0x4D, 0x3C, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-0x00, 0x36, 0x00, 0x00, 0x00, 0x28, 0x00, 0x00, 0x00,
-0x01, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x01,
-0x00, 0x20, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-0x00, 0x00, 0x12, 0x0B, 0x00, 0x00, 0x12, 0x0B, 0x00,
-0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-0xFF, 0x00, 0x00, 0x00, 0x00, 0x00
-};
-
-const BYTE bYellow[60] =
-{
-0x42, 0x4D, 0x3C, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-0x00, 0x36, 0x00, 0x00, 0x00, 0x28, 0x00, 0x00, 0x00,
-0x01, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x01,
-0x00, 0x18, 0x00, 0x00, 0x00, 0x00, 0x00, 0x04, 0x00,
-0x00, 0x00, 0x12, 0x0B, 0x00, 0x00, 0x12, 0x0B, 0x00,
-0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-0x00, 0xFF, 0xFF, 0x00, 0x00, 0x00
-};
-
-const BYTE bTur[60] = //turquoise
-{
-0x42, 0x4D, 0x3C, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-0x00, 0x36, 0x00, 0x00, 0x00, 0x28, 0x00, 0x00, 0x00,
-0x01, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x01,
-0x00, 0x20, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-0x00, 0x00, 0x12, 0x0B, 0x00, 0x00, 0x12, 0x0B, 0x00,
-0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-0xFF, 0xFF, 0x00, 0x00, 0x00, 0x00
-};
-*/
-
-//==========================================================================================================================
-
-//draw shader (may not work in all games)
-IDirect3DPixelShader9 *ellipse = NULL;
-
-DWORD deffault_color8[] = { 0xffffffff, 0xffffffff, 0xffffffff, 0xffffffff, 0xffffffff, 0xffffffff, 0xffffffff, 0xffffffff };
-struct VERTEX
-{
-	float x, y, z, rhw;
-	DWORD color;
-	float tu, tv;
-};
-DWORD FVF = D3DFVF_XYZRHW | D3DFVF_TEX1 | D3DFVF_DIFFUSE;
-
-int DX9CreateEllipseShader(LPDIRECT3DDEVICE9 Device)
-{
-	char vers[100];
-	char *strshader = "\
-					  float4 radius: register(c0);\
-					  sampler mytexture;\
-					  struct VS_OUTPUT\
-					  {\
-					  float4 Pos : SV_POSITION;\
-					  float4 Color : COLOR;\
-					  float2 TexCoord : TEXCOORD;\
-					  };\
-					  float4 PS(VS_OUTPUT input) : SV_TARGET\
-					  {\
-					  if( ( (input.TexCoord[0]-0.5)*(input.TexCoord[0]-0.5) + (input.TexCoord[1]-0.5)*(input.TexCoord[1]-0.5) <= 0.5*0.5) &&\
-					  ( (input.TexCoord[0]-0.5)*(input.TexCoord[0]-0.5) + (input.TexCoord[1]-0.5)*(input.TexCoord[1]-0.5) >= radius[0]*radius[0]) )\
-					  return input.Color;\
-					  else return float4(0,0,0,0);\
-					  };";
-
-	D3DCAPS9 caps;
-	Device->GetDeviceCaps(&caps);
-	UINT V1 = D3DSHADER_VERSION_MAJOR(caps.PixelShaderVersion);
-	UINT V2 = D3DSHADER_VERSION_MINOR(caps.PixelShaderVersion);
-	sprintf(vers, "ps_%d_%d", V1, V2);
-	LPD3DXBUFFER pshader;
-	D3DXCompileShader(strshader, strlen(strshader), 0, 0, "PS", vers, 0, &pshader, 0, 0);
-	if (pshader == NULL)
+	hr = D3DXCreateTextureFromFile(pd3dDevice, GetDirectoryFile("team1.png"), &lpSpriteImage); //png in hack dir
+	if (FAILED(hr))
 	{
-		//MessageBoxA(0, "pshader == NULL", 0, 0);
-		return 1;
-	}
-	Device->CreatePixelShader((DWORD*)pshader->GetBufferPointer(), (IDirect3DPixelShader9**)&ellipse);
-	if (!ellipse)
-	{
-		//MessageBoxA(0, "ellipseshader == NULL", 0, 0);
-		return 2;
+		//Log("D3DXCreateTextureFromFile failed");
+		bSpriteCreated = false;
+		return false;
 	}
 
-	memset(strshader, 0, strlen(strshader));
-	pshader->Release();
-	return 0;
+	hr = D3DXCreateSprite(pd3dDevice, &lpSprite);
+	if (FAILED(hr))
+	{
+		//Log("D3DXCreateSprite failed");
+		bSpriteCreated = false;
+		return false;
+	}
+
+	bSpriteCreated = true;
+
+	return true;
 }
 
-//IDirect3DVertexBuffer9 *vb = 0;
-//IDirect3DIndexBuffer9 *ib = 0;
-int DX9DrawEllipse(LPDIRECT3DDEVICE9 Device, float x, float y, float w, float h, float linew, DWORD *color)
+bool CreateOverlaySprite2(IDirect3DDevice9* pd3dDevice)
 {
-	if (!Device)return 1;
-	static IDirect3DVertexBuffer9 *vb = 0;
-	static IDirect3DIndexBuffer9 *ib = 0;
-	static IDirect3DSurface9 *surface = 0;
-	static IDirect3DTexture9 *pstexture = 0;
+	HRESULT hr;
 
-	//Device->CreateVertexBuffer(sizeof(VERTEX) * 4, D3DUSAGE_WRITEONLY, FVF, D3DPOOL_MANAGED, &vb, NULL);
-	Device->CreateVertexBuffer(sizeof(VERTEX) * 4, D3DUSAGE_WRITEONLY, FVF, D3DPOOL_DEFAULT, &vb, NULL);
-	if (!vb) { MessageBoxA(0, "DrawEllipse error vb", 0, 0); return 2; }
+	hr = D3DXCreateTextureFromFile(pd3dDevice, GetDirectoryFile("team2.png"), &lpSpriteImage2); //png in hack dir
+	if (FAILED(hr))
+	{
+		//Log("D3DXCreateTextureFromFile failed");
+		bSpriteCreated2 = false;
+		return false;
+	}
 
-	//Device->CreateIndexBuffer((3 * 2) * 2, 0, D3DFMT_INDEX16, D3DPOOL_MANAGED, &ib, NULL);
-	Device->CreateIndexBuffer((3 * 2) * 2, D3DUSAGE_WRITEONLY, D3DFMT_INDEX16, D3DPOOL_DEFAULT, &ib, NULL);
-	if (!ib) { MessageBoxA(0, "DrawEllipse error ib", 0, 0); return 3; }
+	hr = D3DXCreateSprite(pd3dDevice, &lpSprite2);
+	if (FAILED(hr))
+	{
+		//Log("D3DXCreateSprite failed");
+		bSpriteCreated2 = false;
+		return false;
+	}
 
-	if (!color)color = deffault_color8;
-	float tu = 0, tv = 0;
-	float tw = 1.0, th = 1.0;
-	VERTEX v[4] = { { x, y, 0, 1, color[0], tu, tv },{ x + w, y, 0, 1, color[1], tu + tw, tv },{ x + w, y + h, 0, 1, color[2], tu + tw, tv + th },{ x, y + h, 0, 1, color[3], tu, tv + th } };
-	WORD i[2 * 3] = { 0, 1, 2, 2, 3, 0 };
-	void *p;
-	vb->Lock(0, sizeof(v), &p, 0);
-	memcpy(p, v, sizeof(v));
-	vb->Unlock();
+	bSpriteCreated2 = true;
 
-	ib->Lock(0, sizeof(i), &p, 0);
-	memcpy(p, i, sizeof(i));
-	ib->Unlock();
+	return true;
+}
 
-	float radius[4] = { 0, w, h, 0 };
+bool CreateOverlaySprite3(IDirect3DDevice9* pd3dDevice)
+{
+	HRESULT hr;
 
-	radius[0] = (linew) / w;
-	if (radius[0]>0.5)radius[0] = 0.5;
-	radius[0] = 0.5 - radius[0];
+	hr = D3DXCreateTextureFromFile(pd3dDevice, GetDirectoryFile("team3.png"), &lpSpriteImage3); //png in hack dir
+	if (FAILED(hr))
+	{
+		//Log("D3DXCreateTextureFromFile failed");
+		bSpriteCreated3 = false;
+		return false;
+	}
 
-	Device->SetPixelShaderConstantF(0, radius, 1);
-	Device->SetFVF(FVF);
-	Device->SetTexture(0, 0);
-	Device->SetPixelShader((IDirect3DPixelShader9*)ellipse);
-	Device->SetVertexShader(0);
-	Device->SetStreamSource(0, vb, 0, sizeof(VERTEX));
-	Device->SetIndices(ib);
-	Device->DrawIndexedPrimitive(D3DPT_TRIANGLELIST, 0, 0, 4, 0, 2);
-	if (vb != NULL) { vb->Release(); }
-	if (ib != NULL) { ib->Release(); }
+	hr = D3DXCreateSprite(pd3dDevice, &lpSprite3);
+	if (FAILED(hr))
+	{
+		//Log("D3DXCreateSprite failed");
+		bSpriteCreated3 = false;
+		return false;
+	}
 
-	return 0;
-};
+	bSpriteCreated3 = true;
 
+	return true;
+}
+
+// COM utils
+template<class COMObject>
+void SafeRelease(COMObject*& pRes)
+{
+	IUnknown *unknown = pRes;
+	if (unknown)
+	{
+		unknown->Release();
+	}
+	pRes = NULL;
+}
+
+// This will get called before Device::Clear(). If the device has been reset
+// then all the work surfaces will be created again.
+void PreClear(IDirect3DDevice9* device)
+{
+	if (!bSpriteCreated)
+		CreateOverlaySprite(device);
+
+	if (!bSpriteCreated2)
+		CreateOverlaySprite2(device);
+
+	if (!bSpriteCreated3)
+		CreateOverlaySprite3(device);
+}
+
+// Delete work surfaces when device gets reset
+void DeleteRenderSurfaces()
+{
+	if (lpSprite != NULL)
+	{
+		//Log("SafeRelease(lpSprite)");
+		SafeRelease(lpSprite);
+	}
+
+	if (lpSprite2 != NULL)
+	{
+		//Log("SafeRelease(lpSprite2)");
+		SafeRelease(lpSprite2);
+	}
+
+	if (lpSprite3 != NULL)
+	{
+		//Log("SafeRelease(lpSprite3)");
+		SafeRelease(lpSprite3);
+	}
+
+	bSpriteCreated = false;
+	bSpriteCreated2 = false;
+	bSpriteCreated3 = false;
+}
+
+// This gets called right before the frame is presented on-screen - Device::Present().
+// First, create the display text, FPS and info message, on-screen. Then then call
+// CopySurfaceToTextureBuffer() to downsample the image and copy to shared memory
+void PrePresent(IDirect3DDevice9* Device, int cx, int cy)
+{
+	int textOffsetLeft;
+
+	//draw sprite
+	if (bSpriteCreated)
+	{
+		if (lpSprite != NULL)
+		{
+			D3DXVECTOR3 position;
+			position.x = (float)cx;
+			position.y = (float)cy;
+			position.z = 0.0f;
+
+			textOffsetLeft = (int)position.x; //for later to offset text from image
+
+			lpSprite->Begin(D3DXSPRITE_ALPHABLEND);
+			lpSprite->Draw(lpSpriteImage, NULL, NULL, &position, 0xFFFFFFFF);
+			lpSprite->End();
+		}
+	}
+
+	// draw text
+}
+
+void PrePresent2(IDirect3DDevice9* Device, int cx, int cy)
+{
+	int textOffsetLeft;
+
+	//draw sprite
+	if (bSpriteCreated2)
+	{
+		if (lpSprite2 != NULL)
+		{
+			D3DXVECTOR3 position;
+			position.x = (float)cx;
+			position.y = (float)cy;
+			position.z = 0.0f;
+
+			textOffsetLeft = (int)position.x; //for later to offset text from image
+
+			lpSprite2->Begin(D3DXSPRITE_ALPHABLEND);
+			lpSprite2->Draw(lpSpriteImage2, NULL, NULL, &position, 0xFFFFFFFF);
+			lpSprite2->End();
+		}
+	}
+
+	// draw text
+}
+
+void PrePresent3(IDirect3DDevice9* Device, int cx, int cy)
+{
+	int textOffsetLeft;
+
+	//draw sprite
+	if (bSpriteCreated3)
+	{
+		if (lpSprite3 != NULL)
+		{
+			D3DXVECTOR3 position;
+			position.x = (float)cx;
+			position.y = (float)cy;
+			position.z = 0.0f;
+
+			textOffsetLeft = (int)position.x; //for later to offset text from image
+
+			lpSprite3->Begin(D3DXSPRITE_ALPHABLEND);
+			lpSprite3->Draw(lpSpriteImage3, NULL, NULL, &position, 0xFFFFFFFF);
+			lpSprite3->End();
+		}
+	}
+
+	// draw text
+}
+
+//==========================================================================================================================
