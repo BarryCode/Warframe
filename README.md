@@ -3,7 +3,6 @@
 - fixed a reset crash bug
 - added dxsdk (makes compiling easier)
 - notelemetry.obj (stops microsofts spydebugging)
-- pic esp ready
-- couldn't work on other features yet
+- pic esp
 
 you can download the source by clicking the Download ZIP button
