@@ -211,7 +211,7 @@ char *opt_onetwo[] = { "[OFF]", "[1]", "[2]" };
 char *opt_Autoshoot[] = { "[OFF]", "[Auto]", "[OnKeyDown]" };
 char *opt_Sensitivity[] = { "[OFF]", "[2]", "[3]", "[4]", "[5]", "[6]", "[7]", "[8]", "[9]" };
 char *opt_Aimheight[] = { "[0]", "[-1]", "[-2]", "[-3]", "[-4]", "[-5]", "[-6]", "[-7]", "[-8]", "[-9]", "[-10]", "[-11]", "[-12]" };
-char *opt_Esp[] = { "[OFF]", "[Box]", "[Circle]" };
+char *opt_Esp[] = { "[OFF]", "[Box]", "[Pic]" };
 char *opt_Aimbot[] = { "[OFF]", "[PvE]", "[PvP]" };
 
 void BuildMenu(LPDIRECT3DDEVICE9 pDevice)
@@ -357,7 +357,6 @@ HRESULT APIENTRY DrawIndexedPrimitive_hook(IDirect3DDevice9* pDevice, D3DPRIMITI
 		{
 			float PvERed[4] = { 1.0f, 0.0f, 0.0f, 3.0f };
 			pDevice->SetPixelShaderConstantF(50, PvERed, 1);//50red, 51green, 52blue
-			//pDevice->SetPixelShaderConstantF(41, PvERed, 1); //41red, 42green, 43blue, 44, 45, 46
 		}
 		else if (PLAYERS && chams == 3)
 		{
@@ -382,7 +381,7 @@ HRESULT APIENTRY DrawIndexedPrimitive_hook(IDirect3DDevice9* pDevice, D3DPRIMITI
 			{
 				float vals[4] = { (255 >> 24) / 1.0f, (255 >> 16) / 1.0f, 255.0f, 1.0f };
 				pDevice->SetPixelShaderConstantF(2, vals, 1);
-				//pDevice->SetPixelShader(sSubA); //great but bad with amd?
+				//pDevice->SetPixelShader(sSubA); //great but bad with amd
 				//pDevice->SetPixelShader(shadBlue); //buggy
 			}
 		}
@@ -408,7 +407,6 @@ HRESULT APIENTRY DrawIndexedPrimitive_hook(IDirect3DDevice9* pDevice, D3DPRIMITI
 		{
 			float PvEGreen[4] = { 0.0f, 1.0f, 0.0f, 3.0f };
 			pDevice->SetPixelShaderConstantF(51, PvEGreen, 1);//50red, 51green, 52blue
-			//pDevice->SetPixelShaderConstantF(42, PvEGreen, 1); //41red, 42green, 43blue
 		}
 		else if (PLAYERS && chams == 3)
 		{
@@ -470,7 +468,7 @@ HRESULT APIENTRY DrawIndexedPrimitive_hook(IDirect3DDevice9* pDevice, D3DPRIMITI
 			countnum = -1;
 		if (countnum == NumVertices / 10 || countnum == vSize / 10)
 			if (pSize > 44 && GetAsyncKeyState('I') & 1) //press I to log to log.txt
-				Log("texCRC == %x && Stride == %d && NumVertices == %d && primCount == %d && vSize == %d && pSize == %d && mStartRegister == %d && mVector4fCount == %d && vdesc.Size == %d && startIndex == %d", texCRC, Stride, NumVertices, primCount, vSize, pSize, mStartRegister, mVector4fCount, vdesc.Size, startIndex);
+				Log("Stride == %d && NumVertices == %d && primCount == %d && vSize == %d && pSize == %d && mStartRegister == %d && mVector4fCount == %d && vdesc.Size == %d && startIndex == %d", Stride, NumVertices, primCount, vSize, pSize, mStartRegister, mVector4fCount, vdesc.Size, startIndex);
 				//Log("Stride == %d && NumVertices == %d && primCount == %d && vSize == %d && pSize == %d && mStartRegister == %d && mVector4fCount == %d && vdesc.Size == %d", Stride, NumVertices, primCount, vSize, pSize, mStartRegister, mVector4fCount, vdesc.Size);
 		pDevice->SetRenderState(D3DRS_FILLMODE, D3DFILL_SOLID);
 		if (countnum == NumVertices / 10 || countnum == vSize / 10)
@@ -526,17 +524,6 @@ HRESULT APIENTRY EndScene_hook(IDirect3DDevice9* pDevice)
 		GenerateShader(pDevice, &shadDepthBlue, 0.0f, 0.0f, 1.0f, 0.5f, true);
 		//GenerateShader(pDevice, &shadGreen, 0.0f, 1.0f, 0.0f, false);
 		//GenerateShader(pDevice, &shadYellow, 1.0f, 1.0f, 0.0f, false);
-
-		//generate tex sub shader
-		//D3DXAssembleShader(ShaderSubA, sizeof(ShaderSubA), NULL, NULL, 0, &ShaderBufferSubA, NULL);
-		//D3DXAssembleShader(ShaderSubB, sizeof(ShaderSubB), NULL, NULL, 0, &ShaderBufferSubB, NULL);
-		//pDevice->CreatePixelShader((const DWORD*)ShaderBufferSubA->GetBufferPointer(), &sSubA);
-		//pDevice->CreatePixelShader((const DWORD*)ShaderBufferSubB->GetBufferPointer(), &sSubB);
-		//ShaderBufferSubA->Release();
-		//ShaderBufferSubB->Release();
-
-		//generate circle shader
-		//DX9CreateEllipseShader(pDevice);
 
 		//load settings
 		crosshair = Load("Crosshair", "Crosshair", crosshair, GetDirectoryFile("settings.ini"));
@@ -596,10 +583,6 @@ HRESULT APIENTRY EndScene_hook(IDirect3DDevice9* pDevice)
 				//drawpic
 				PrePresent(pDevice, (int)EspInfo[i].vOutX - 32, (int)EspInfo[i].vOutY - 20);
 
-				//DWORD col[4] = { 0xff00ff00, 0xff00ff00, 0xff00ff00, 0xff00ff00 };//green
-				//show ellipse
-				//DX9DrawEllipse(pDevice, (int)EspInfo[i].vOutX - 12, (int)EspInfo[i].vOutY - 10, 25, 35, 1, col);
-
 				//draw real distance
 				DrawString(pFont, (int)EspInfo[i].vOutX - 9, (int)EspInfo[i].vOutY, Green, "%.f", EspInfo[i].RealDistance*2.0f);
 			}
@@ -613,8 +596,6 @@ HRESULT APIENTRY EndScene_hook(IDirect3DDevice9* pDevice)
 				//drawpic
 				PrePresent2(pDevice, (int)EspInfo[i].vOutX - 32, (int)EspInfo[i].vOutY - 20);
 
-				//DWORD col[4] = { 0xffffff00, 0xffffff00, 0xffffff00, 0xffffff00 };//yellow
-				//DX9DrawEllipse(pDevice, (int)EspInfo[i].vOutX - 12, (int)EspInfo[i].vOutY - 10, 15, 15, 2, &EspInfo[i].cColor);
 				DrawString(pFont, (int)EspInfo[i].vOutX, (int)EspInfo[i].vOutY, EspInfo[i].cColor, EspInfo[i].oName);
 			}
 
@@ -663,10 +644,8 @@ HRESULT APIENTRY EndScene_hook(IDirect3DDevice9* pDevice)
 			if (esp == 2 && EspInfo[BestTarget].iTeam == 1 && EspInfo[BestTarget].vOutX > 1 && EspInfo[BestTarget].vOutY > 1 && EspInfo[BestTarget].RealDistance > 3.0f)
 			{
 				//drawpic
-				PrePresent3(pDevice, (int)EspInfo[BestTarget].vOutX - 32, (int)EspInfo[BestTarget].vOutY - 20);
+				//PrePresent3(pDevice, (int)EspInfo[BestTarget].vOutX - 32, (int)EspInfo[BestTarget].vOutY - 20);
 
-				//DWORD col[4] = { 0xffffffff, 0xffffffff, 0xffffffff, 0xffffffff };
-				//DX9DrawEllipse(pDevice, (int)EspInfo[BestTarget].vOutX - 12, (int)EspInfo[BestTarget].vOutY - 10, 25, 35, 1, col);
 				DrawString(pFont, (int)EspInfo[BestTarget].vOutX - 9, (int)EspInfo[BestTarget].vOutY, White, "%.f", EspInfo[BestTarget].RealDistance*2.0f);//EspInfo[BestTarget].RealDistance*2.0f
 			}
 
@@ -696,8 +675,8 @@ HRESULT APIENTRY EndScene_hook(IDirect3DDevice9* pDevice)
 		for (unsigned int i = 0; i < AimInfo.size(); i++)
 		{
 			//aimfov
-			float radiusx = aimfov * (ScreenCenterX / 100);
-			float radiusy = aimfov * (ScreenCenterY / 100);
+			float radiusx = aimfov * (ScreenCenterX / 100.0f);
+			float radiusy = aimfov * (ScreenCenterY / 100.0f);
 
 			//get crosshairdistance
 			AimInfo[i].CrosshairDistance = GetDistance(AimInfo[i].vOutX, AimInfo[i].vOutY, ScreenCenterX, ScreenCenterY);
@@ -798,50 +777,30 @@ HRESULT APIENTRY SetTexture_hook(IDirect3DDevice9* pDevice, DWORD Sampler, IDire
 	
 	pCurrentTexture = static_cast<IDirect3DTexture9*>(pTexture);
 
-	if (Sampler == 0 && pCurrentTexture)
+	if (Stride == 24 && Sampler == 0 && pCurrentTexture)
 	{
 		if (reinterpret_cast<IDirect3DTexture9 *>(pCurrentTexture)->GetType() == D3DRTYPE_TEXTURE)
 		{
 			pCurrentTexture->GetLevelDesc(0, &desc);
-			if (desc.Pool == D3DPOOL_DEFAULT) //warframe
-			//if (desc.Pool == D3DPOOL_MANAGED) //warface
+			if (desc.Pool == D3DPOOL_DEFAULT) 
+			//if (desc.Pool == D3DPOOL_MANAGED) 
 			{
 				dWidth = desc.Width;
 				dHeight = desc.Height;
 
-				pCurrentTexture->LockRect(0, &pLockedRect, NULL, D3DLOCK_NOOVERWRITE | D3DLOCK_READONLY);
-				//pCurrentTexture->LockRect(0, &pLockedRect, NULL, 0); //few other games
+				//pCurrentTexture->LockRect(0, &pLockedRect, NULL, D3DLOCK_NOOVERWRITE | D3DLOCK_READONLY); //no
+				//pCurrentTexture->LockRect(0, &pLockedRect, NULL, 0); //low fps
+				//pCurrentTexture->LockRect(0, &pLockedRect, NULL, D3DLOCK_NO_DIRTY_UPDATE); //low fps
 
-				if (pLockedRect.pBits != NULL)
+				//if (pLockedRect.pBits != NULL)
 				//get crc
-				texCRC = QuickChecksum((DWORD*)pLockedRect.pBits, 1024);
+				//texCRC = QuickChecksum((DWORD*)pLockedRect.pBits, 1024);
 
-			pCurrentTexture->UnlockRect(0);
+				//pCurrentTexture->UnlockRect(0);
 			}
 		}
 	}
-	
 
-	/*
-	//get desc.Width
-	HRESULT hr;
-	if (pTexture != nullptr)
-	{
-		hr = (pTexture->GetType() == D3DRTYPE_TEXTURE);
-		if (FAILED(hr)) { goto out; }
-
-		//hr = (((LPDIRECT3DTEXTURE9)pTexture)->GetLevelDesc(0, &desc));
-		hr = reinterpret_cast<IDirect3DTexture9 *>(pTexture)->GetLevelDesc(0, &desc);
-		if (FAILED(hr)) { goto out; }
-
-		if (desc.Pool == D3DPOOL_DEFAULT)
-		{
-			dWidth = desc.Width;
-			dHeight = desc.Height;
-		}
-	}
-	out:
-	*/
 
 	return SetTexture_orig(pDevice, Sampler, pTexture);
 }
@@ -850,7 +809,7 @@ HRESULT APIENTRY SetTexture_hook(IDirect3DDevice9* pDevice, DWORD Sampler, IDire
 
 HRESULT APIENTRY Reset_hook(IDirect3DDevice9* pDevice, D3DPRESENT_PARAMETERS *pPresentationParameters)
 {
-	//DeleteRenderSurfaces();
+	DeleteRenderSurfaces();
 
 	if (pFont)
 		pFont->OnLostDevice();

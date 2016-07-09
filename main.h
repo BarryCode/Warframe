@@ -40,15 +40,7 @@ D3DSURFACE_DESC desc;
 IDirect3DTexture9* pCurrentTexture;
 
 //crc
-DWORD texCRC;
-
-//DPvertexshader
-//IDirect3DVertexShader9* DPvShader;
-//UINT DPvSize;
-
-//DPpixelshader
-//IDirect3DPixelShader9* DPpShader;
-//UINT DPpSize;
+//DWORD texCRC;
 
 // model rec
 UINT mStartRegister;
@@ -71,13 +63,6 @@ bool FirstInit = false; //init once
 
 //vdesc.Size
 D3DVERTEXBUFFER_DESC vdesc;
-D3DVERTEXBUFFER_DESC DPvdesc;
-
-//sprite
-bool MenuSpriteCreated, MenuSpriteCreated2 = NULL;
-LPDIRECT3DTEXTURE9 MenuIMAGE, MenuIMAGE2;
-LPD3DXSPRITE MenuSPRITE, MenuSPRITE2;
-D3DXVECTOR3 MenuImagePos, MenuImagePos2;
 
 DWORD dwStartTime = 0; //time as the timer started
 DWORD dwTime = 0; //windowsuptime
