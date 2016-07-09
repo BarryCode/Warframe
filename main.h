@@ -93,7 +93,11 @@ DWORD dwTime = 0; //windowsuptime
 (Stride == 24 && NumVertices == 1619 && primCount == 596 && vSize == 352 && /*pSize == 540 && */mStartRegister == 12 && mVector4fCount == 1)|| \
 (Stride == 24 && NumVertices == 1619 && primCount == 2384 && vSize == 768 && /*pSize == 1724 && */mStartRegister == 18 && mVector4fCount == 1)|| \
 (Stride == 24 && NumVertices == 1619 && primCount == 2384 && vSize == 352 && /*pSize == 540 && */mStartRegister == 12 && mVector4fCount == 1)|| \
-(Stride == 24 && NumVertices == 1619 && primCount == 2384 && vSize == 768 && /*pSize == 1724 && */mStartRegister == 11 && mVector4fCount == 1))
+(Stride == 24 && NumVertices == 1619 && primCount == 2384 && vSize == 768 && /*pSize == 1724 && */mStartRegister == 11 && mVector4fCount == 1)|| \
+(Stride == 24 && NumVertices == 1619 && primCount == 1311 && vSize == 768 && /*pSize == 1724 &&*/ mStartRegister == 12 && mVector4fCount == 1)|| \
+(Stride == 24 && NumVertices == 1619 && primCount == 1311 && vSize == 352 && /*pSize == 540 &&*/ mStartRegister == 12 && mVector4fCount == 1)|| \
+(Stride == 24 && NumVertices == 1619 && primCount == 953 && vSize == 768 && /*pSize == 1724 && */mStartRegister == 11 && mVector4fCount == 1)|| \
+(Stride == 24 && NumVertices == 1619 && primCount == 953 && vSize == 352 && /*pSize == 540 && */mStartRegister == 12 && mVector4fCount == 1))
 
 #define CREDITS ((Stride == 24 && NumVertices == 1377 && vSize == 804 && /*pSize == 2612 && */mStartRegister == 12 && mVector4fCount == 1)|| \
 (Stride == 24 && NumVertices == 1432 && vSize == 352 && /*pSize == 540 && */mStartRegister == 12 && mVector4fCount == 1)|| \
@@ -102,7 +106,8 @@ DWORD dwTime = 0; //windowsuptime
 (Stride == 24 && NumVertices == 1376 && primCount == 776 && vSize == 352 && /*pSize == 540 && */mStartRegister == 12 && mVector4fCount == 1)|| \
 (Stride == 24 && NumVertices == 1376 && primCount == 776 && vSize == 804 && /*pSize == 3144 && */mStartRegister == 15 && mVector4fCount == 1)|| \
 (Stride == 24 && NumVertices == 1376 && primCount == 582 && vSize == 352 && /*pSize == 540 && */mStartRegister == 12 && mVector4fCount == 1)||\
-(Stride == 24 && NumVertices == 1376 && primCount == 582 && vSize == 804 && /*pSize == 3144 && */mStartRegister == 15 && mVector4fCount == 1))
+(Stride == 24 && NumVertices == 1376 && primCount == 582 && vSize == 804 && /*pSize == 3144 && */mStartRegister == 15 && mVector4fCount == 1)||\
+(Stride == 24 && NumVertices == 1376 && primCount == 309 && vSize == 816 && /*pSize == 3144 && */mStartRegister == 15 && mVector4fCount == 1))
 
 #define GRENADE ((Stride == 24 && NumVertices == 223 && primCount == 332 && vSize == 768 && /*pSize == 1636 && */mStartRegister == 18 && mVector4fCount == 1)|| \
 (Stride == 24 && NumVertices == 223 && primCount == 128 && vSize == 768 && /*pSize == 1636 && */mStartRegister == 18 && mVector4fCount == 1)|| \
@@ -591,6 +596,117 @@ HRESULT GenerateShader(IDirect3DDevice9 *pDevice, IDirect3DPixelShader9 **pShade
 }
 
 //=====================================================================================================================
+
+//draw shader (may not work in all games)
+IDirect3DPixelShader9 *ellipse = NULL;
+
+DWORD deffault_color8[] = { 0xffffffff, 0xffffffff, 0xffffffff, 0xffffffff, 0xffffffff, 0xffffffff, 0xffffffff, 0xffffffff };
+struct VERTEX
+{
+	float x, y, z, rhw;
+	DWORD color;
+	float tu, tv;
+};
+DWORD FVF = D3DFVF_XYZRHW | D3DFVF_TEX1 | D3DFVF_DIFFUSE;
+
+int DX9CreateEllipseShader(LPDIRECT3DDEVICE9 Device)
+{
+	char vers[100];
+	char *strshader = "\
+					  float4 radius: register(c0);\
+					  sampler mytexture;\
+					  struct VS_OUTPUT\
+					  {\
+					  float4 Pos : SV_POSITION;\
+					  float4 Color : COLOR;\
+					  float2 TexCoord : TEXCOORD;\
+					  };\
+					  float4 PS(VS_OUTPUT input) : SV_TARGET\
+					  {\
+					  if( ( (input.TexCoord[0]-0.5)*(input.TexCoord[0]-0.5) + (input.TexCoord[1]-0.5)*(input.TexCoord[1]-0.5) <= 0.5*0.5) &&\
+					  ( (input.TexCoord[0]-0.5)*(input.TexCoord[0]-0.5) + (input.TexCoord[1]-0.5)*(input.TexCoord[1]-0.5) >= radius[0]*radius[0]) )\
+					  return input.Color;\
+					  else return float4(0,0,0,0);\
+					  };";
+
+	D3DCAPS9 caps;
+	Device->GetDeviceCaps(&caps);
+	UINT V1 = D3DSHADER_VERSION_MAJOR(caps.PixelShaderVersion);
+	UINT V2 = D3DSHADER_VERSION_MINOR(caps.PixelShaderVersion);
+	sprintf_s(vers, "ps_%d_%d", V1, V2);
+	//sprintf(vers, "ps_%d_%d", V1, V2);
+	LPD3DXBUFFER pshader;
+	D3DXCompileShader(strshader, strlen(strshader), 0, 0, "PS", vers, 0, &pshader, 0, 0);
+	if (pshader == NULL)
+	{
+		//MessageBoxA(0, "pshader == NULL", 0, 0);
+		return 1;
+	}
+	Device->CreatePixelShader((DWORD*)pshader->GetBufferPointer(), (IDirect3DPixelShader9**)&ellipse);
+	if (!ellipse)
+	{
+		//MessageBoxA(0, "ellipseshader == NULL", 0, 0);
+		return 2;
+	}
+
+	memset(strshader, 0, strlen(strshader));
+	pshader->Release();
+	return 0;
+}
+
+//IDirect3DVertexBuffer9 *vb = 0;
+//IDirect3DIndexBuffer9 *ib = 0;
+int DX9DrawEllipse(LPDIRECT3DDEVICE9 Device, float x, float y, float w, float h, float linew, DWORD *color)
+{
+	if (!Device)return 1;
+	static IDirect3DVertexBuffer9 *vb = 0;
+	static IDirect3DIndexBuffer9 *ib = 0;
+	static IDirect3DSurface9 *surface = 0;
+	static IDirect3DTexture9 *pstexture = 0;
+
+	//Device->CreateVertexBuffer(sizeof(VERTEX) * 4, D3DUSAGE_WRITEONLY, FVF, D3DPOOL_MANAGED, &vb, NULL);
+	Device->CreateVertexBuffer(sizeof(VERTEX) * 4, D3DUSAGE_WRITEONLY, FVF, D3DPOOL_DEFAULT, &vb, NULL);
+	if (!vb) { MessageBoxA(0, "DrawEllipse error vb", 0, 0); return 2; }
+
+	//Device->CreateIndexBuffer((3 * 2) * 2, 0, D3DFMT_INDEX16, D3DPOOL_MANAGED, &ib, NULL);
+	Device->CreateIndexBuffer((3 * 2) * 2, D3DUSAGE_WRITEONLY, D3DFMT_INDEX16, D3DPOOL_DEFAULT, &ib, NULL);
+	if (!ib) { MessageBoxA(0, "DrawEllipse error ib", 0, 0); return 3; }
+
+	if (!color)color = deffault_color8;
+	float tu = 0, tv = 0;
+	float tw = 1.0, th = 1.0;
+	VERTEX v[4] = { { x, y, 0, 1, color[0], tu, tv },{ x + w, y, 0, 1, color[1], tu + tw, tv },{ x + w, y + h, 0, 1, color[2], tu + tw, tv + th },{ x, y + h, 0, 1, color[3], tu, tv + th } };
+	WORD i[2 * 3] = { 0, 1, 2, 2, 3, 0 };
+	void *p;
+	vb->Lock(0, sizeof(v), &p, 0);
+	memcpy(p, v, sizeof(v));
+	vb->Unlock();
+
+	ib->Lock(0, sizeof(i), &p, 0);
+	memcpy(p, i, sizeof(i));
+	ib->Unlock();
+
+	float radius[4] = { 0, w, h, 0 };
+
+	radius[0] = (linew) / w;
+	if (radius[0]>0.5)radius[0] = 0.5;
+	radius[0] = 0.5 - radius[0];
+
+	Device->SetPixelShaderConstantF(0, radius, 1);
+	Device->SetFVF(FVF);
+	Device->SetTexture(0, 0);
+	Device->SetPixelShader((IDirect3DPixelShader9*)ellipse);
+	Device->SetVertexShader(0);
+	Device->SetStreamSource(0, vb, 0, sizeof(VERTEX));
+	Device->SetIndices(ib);
+	Device->DrawIndexedPrimitive(D3DPT_TRIANGLELIST, 0, 0, 4, 0, 2);
+	if (vb != NULL) { vb->Release(); }
+	if (ib != NULL) { ib->Release(); }
+
+	return 0;
+};
+
+//==========================================================================================================================
 
 //draw sprites, pic esp v3.0
 LPD3DXSPRITE lpSprite, lpSprite2, lpSprite3 = NULL;

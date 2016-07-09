@@ -408,10 +408,10 @@ HRESULT APIENTRY DrawIndexedPrimitive_hook(IDirect3DDevice9* pDevice, D3DPRIMITI
 			float PvEGreen[4] = { 0.0f, 1.0f, 0.0f, 3.0f };
 			pDevice->SetPixelShaderConstantF(51, PvEGreen, 1);//50red, 51green, 52blue
 		}
-		else if (PLAYERS && chams == 3)
-		{
+		//else if (PLAYERS && chams == 3)
+		//{
 
-		}
+		//}
 
 		//color itemglow
 		if ((!STUFFTHATSHOULDNOTGLOW && CACHE_GLOW) && (wallhack == 1 || cacheglow > 0))
@@ -525,6 +525,9 @@ HRESULT APIENTRY EndScene_hook(IDirect3DDevice9* pDevice)
 		//GenerateShader(pDevice, &shadGreen, 0.0f, 1.0f, 0.0f, false);
 		//GenerateShader(pDevice, &shadYellow, 1.0f, 1.0f, 0.0f, false);
 
+		//generate circle shader
+		DX9CreateEllipseShader(pDevice);
+
 		//load settings
 		crosshair = Load("Crosshair", "Crosshair", crosshair, GetDirectoryFile("settings.ini"));
 		wallhack = Load("Wallhack", "Wallhack", wallhack, GetDirectoryFile("settings.ini"));
@@ -594,8 +597,10 @@ HRESULT APIENTRY EndScene_hook(IDirect3DDevice9* pDevice)
 			if (items == 2 && EspInfo[i].iTeam == 2 && EspInfo[i].vOutX > 1 && EspInfo[i].vOutY > 1)
 			{
 				//drawpic
-				PrePresent2(pDevice, (int)EspInfo[i].vOutX - 32, (int)EspInfo[i].vOutY - 20);
+				//PrePresent2(pDevice, (int)EspInfo[i].vOutX - 32, (int)EspInfo[i].vOutY - 20);
 
+				//DWORD col[4] = { 0xffffff00, 0xffffff00, 0xffffff00, 0xffffff00 };//yellow
+				DX9DrawEllipse(pDevice, (int)EspInfo[i].vOutX - 12, (int)EspInfo[i].vOutY - 10, 25, 25, 6, &EspInfo[i].cColor);
 				DrawString(pFont, (int)EspInfo[i].vOutX, (int)EspInfo[i].vOutY, EspInfo[i].cColor, EspInfo[i].oName);
 			}
 
