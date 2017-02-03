@@ -1,5 +1,5 @@
 /*
-* Warframe D3D Hack Source V1.1 by Nseven
+* Warframe D3D Hack Source V1.1b by Nseven
 
 How to compile:
 - download and install "Microsoft Visual Studio Express 2015 for Windows DESKTOP" https://www.visualstudio.com/en-us/products/visual-studio-express-vs.aspx
@@ -70,6 +70,10 @@ SetPixelShader SetPixelShader_orig = 0;
 typedef HRESULT(APIENTRY *SetTexture)(IDirect3DDevice9*, DWORD, IDirect3DBaseTexture9*);
 HRESULT APIENTRY SetTexture_hook(IDirect3DDevice9*, DWORD, IDirect3DBaseTexture9*);
 SetTexture SetTexture_orig = 0;
+
+typedef HRESULT(APIENTRY *SetViewport)(IDirect3DDevice9*, CONST D3DVIEWPORT9*);
+HRESULT APIENTRY SetViewport_hook(IDirect3DDevice9*, CONST D3DVIEWPORT9*);
+SetViewport SetViewport_orig = 0;
 
 //=====================================================================================================================
 
@@ -454,7 +458,7 @@ HRESULT APIENTRY DrawIndexedPrimitive_hook(IDirect3DDevice9* pDevice, D3DPRIMITI
 	if (items > 0 && GRENADE)
 		AddEsp(pDevice, 2, "GRENADE", OrangeRed, 0.0f);
 
-
+	/*
 	//small bruteforce logger
 	//ALT + CTRL + L toggles logger
 	if (logger)
@@ -473,12 +477,12 @@ HRESULT APIENTRY DrawIndexedPrimitive_hook(IDirect3DDevice9* pDevice, D3DPRIMITI
 		pDevice->SetRenderState(D3DRS_FILLMODE, D3DFILL_SOLID);
 		if (countnum == NumVertices / 10 || countnum == vSize / 10)
 		{
-			//return D3D_OK; //delete texture
+			return D3D_OK; //delete texture
 			pDevice->SetTexture(0, NULL);
-			pDevice->SetRenderState(D3DRS_FILLMODE, D3DFILL_WIREFRAME);
+			//pDevice->SetRenderState(D3DRS_FILLMODE, D3DFILL_WIREFRAME);
 		}
 	}
-
+	*/
 	return DrawIndexedPrimitive_orig(pDevice, Type, BaseVertexIndex, MinVertexIndex, NumVertices, startIndex, primCount);
 }
 
@@ -511,12 +515,16 @@ HRESULT APIENTRY EndScene_hook(IDirect3DDevice9* pDevice)
 	//sprite
 	PreClear(pDevice);
 
+	//pDevice->GetViewport(&Viewport); //get viewport
+	//ScreenCenterX = Viewport.Width / 2.0f;
+	//ScreenCenterY = Viewport.Height / 2.0f;
+
 	if (FirstInit == FALSE)
 	{
 		FirstInit = TRUE;
-		pDevice->GetViewport(&Viewport); //get viewport
-		ScreenCenterX = Viewport.Width / 2.0f;
-		ScreenCenterY = Viewport.Height / 2.0f;
+		//pDevice->GetViewport(&Viewport); //get viewport
+		//ScreenCenterX = Viewport.Width / 2.0f;
+		//ScreenCenterY = Viewport.Height / 2.0f;
 
 		//generate shader
 		GenerateShader(pDevice, &shadRed, 1.0f, 0.0f, 0.0f, 0.5f, false);
@@ -547,14 +555,14 @@ HRESULT APIENTRY EndScene_hook(IDirect3DDevice9* pDevice)
 	{
 		HRESULT hr = D3DXCreateFont(pDevice, 13, 0, FW_BOLD, 0, FALSE, DEFAULT_CHARSET, OUT_DEFAULT_PRECIS, DEFAULT_QUALITY, DEFAULT_PITCH | FF_DONTCARE, TEXT("Arial"), &pFont);
 
-		//if (FAILED(hr)) {
+		if (FAILED(hr)) {
 			//Log("D3DXCreateFont failed");
-		//}
+		}
 	}
 
 	if (pFont)
 	{
-		pDevice->GetViewport(&Viewport);
+		//pDevice->GetViewport(&Viewport);
 		BuildMenu(pDevice);
 	}
 
@@ -758,7 +766,7 @@ HRESULT APIENTRY EndScene_hook(IDirect3DDevice9* pDevice)
 		}
 		//gametick = timeGetTime();
 	}
-
+	/*
 	//logger
 	if ((GetAsyncKeyState(VK_MENU)) && (GetAsyncKeyState(VK_CONTROL)) && (GetAsyncKeyState(0x4C) & 1)) //ALT + CTRL + L toggles logger
 		logger = !logger;
@@ -771,7 +779,7 @@ HRESULT APIENTRY EndScene_hook(IDirect3DDevice9* pDevice)
 		DrawString(pFont, 220, 120, Yellow, "hold O to -");
 		DrawString(pFont, 220, 130, Green, "press I to log");
 	}
-
+	*/
 	return EndScene_orig(pDevice);
 }
 
@@ -779,6 +787,7 @@ HRESULT APIENTRY EndScene_hook(IDirect3DDevice9* pDevice)
 
 HRESULT APIENTRY SetTexture_hook(IDirect3DDevice9* pDevice, DWORD Sampler, IDirect3DBaseTexture9 *pTexture)
 {
+	//mStage = Sampler;
 	
 	pCurrentTexture = static_cast<IDirect3DTexture9*>(pTexture);
 
@@ -805,9 +814,21 @@ HRESULT APIENTRY SetTexture_hook(IDirect3DDevice9* pDevice, DWORD Sampler, IDire
 			}
 		}
 	}
-
+	
 
 	return SetTexture_orig(pDevice, Sampler, pTexture);
+}
+
+//==========================================================================================================================
+
+HRESULT APIENTRY SetViewport_hook(IDirect3DDevice9* pDevice, CONST D3DVIEWPORT9* pViewport)
+{
+	//get viewport/screensize
+	Viewport = *pViewport;
+	ScreenCenterX = (float)Viewport.Width / 2.0f;
+	ScreenCenterY = (float)Viewport.Height / 2.0f;
+
+	return SetViewport_orig(pDevice, pViewport);
 }
 
 //==========================================================================================================================
@@ -843,9 +864,9 @@ HRESULT APIENTRY Reset_hook(IDirect3DDevice9* pDevice, D3DPRESENT_PARAMETERS *pP
 		if (pFont)
 			pFont->OnResetDevice();
 
-		pDevice->GetViewport(&Viewport);
-		ScreenCenterX = Viewport.Width / 2.0f;
-		ScreenCenterY = Viewport.Height / 2.0f;
+		//pDevice->GetViewport(&Viewport);
+		//ScreenCenterX = Viewport.Width / 2.0f;
+		//ScreenCenterY = Viewport.Height / 2.0f;
 	}
 
 	return ResetReturn;
@@ -919,6 +940,7 @@ DWORD WINAPI DirectXInit(__in  LPVOID lpParameter)
 	SetVertexShader_orig = (SetVertexShader)dVtable[92];
 	SetPixelShader_orig = (SetPixelShader)dVtable[107];
 	SetTexture_orig = (SetTexture)dVtable[65];
+	SetViewport_orig = (SetViewport)dVtable[47];
 
 	// Detour functions x86 & x64
 	if (MH_Initialize() != MH_OK) { return 1; }
@@ -940,6 +962,8 @@ DWORD WINAPI DirectXInit(__in  LPVOID lpParameter)
 	if (MH_EnableHook((DWORD_PTR*)dVtable[107]) != MH_OK) { return 1; }
 	if (MH_CreateHook((DWORD_PTR*)dVtable[65], &SetTexture_hook, reinterpret_cast<void**>(&SetTexture_orig)) != MH_OK) { return 1; }
 	if (MH_EnableHook((DWORD_PTR*)dVtable[65]) != MH_OK) { return 1; }
+	if (MH_CreateHook((DWORD_PTR*)dVtable[47], &SetViewport_hook, reinterpret_cast<void**>(&SetViewport_orig)) != MH_OK) { return 1; }
+	if (MH_EnableHook((DWORD_PTR*)dVtable[47]) != MH_OK) { return 1; }
 
 	//Log("[Detours] EndScene detour attached\n");
 

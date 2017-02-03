@@ -38,6 +38,7 @@ UINT pSize;
 D3DLOCKED_RECT pLockedRect;
 D3DSURFACE_DESC desc;
 IDirect3DTexture9* pCurrentTexture;
+int mStage;
 
 //crc
 //DWORD texCRC;
@@ -56,8 +57,8 @@ int dHeight;
 float bestRealDistance;
 
 //used for logging/cycling through values
-bool logger = false;
-int countnum = -1;
+//bool logger = false;
+//int countnum = -1;
 
 bool FirstInit = false; //init once
 
