@@ -1,5 +1,5 @@
 /*
-* Warframe D3D Hack Source V1.1b by Nseven
+* Warframe D3D Hack Source V1.1c by Nseven
 
 How to compile:
 - download and install "Microsoft Visual Studio Express 2015 for Windows DESKTOP" https://www.visualstudio.com/en-us/products/visual-studio-express-vs.aspx
@@ -59,6 +59,10 @@ typedef HRESULT(APIENTRY *SetStreamSource)(IDirect3DDevice9*, UINT, IDirect3DVer
 HRESULT APIENTRY SetStreamSource_hook(IDirect3DDevice9*, UINT, IDirect3DVertexBuffer9*, UINT, UINT);
 SetStreamSource SetStreamSource_orig = 0;
 
+typedef HRESULT(APIENTRY *SetVertexDeclaration)(IDirect3DDevice9*, IDirect3DVertexDeclaration9*);
+HRESULT APIENTRY SetVertexDeclaration_hook(IDirect3DDevice9*, IDirect3DVertexDeclaration9*);
+SetVertexDeclaration SetVertexDeclaration_orig = 0;
+
 typedef HRESULT(APIENTRY *SetVertexShader)(IDirect3DDevice9*, IDirect3DVertexShader9*);
 HRESULT APIENTRY SetVertexShader_hook(IDirect3DDevice9*, IDirect3DVertexShader9*);
 SetVertexShader SetVertexShader_orig = 0;
@@ -91,7 +95,7 @@ int esp = 0;					//esp
 int autoshoot = 2;				//autoshoot
 
 DWORD Daimkey = VK_RBUTTON;		//aimkey
-int aimkey = 2;
+int aimkey = 2;					//aimkey menu value
 int aimfov = 40;				//aim fov in % (40+ may create problems)
 int espfov = 90;				//esp fov in % 90
 bool IsPressed = false;			//
@@ -300,13 +304,29 @@ HRESULT APIENTRY SetStreamSource_hook(LPDIRECT3DDEVICE9 pDevice, UINT StreamNumb
 	{
 		Stride = sStride;
 
-		if (pStreamData && Stride == 32)
+		if (pStreamData)// && Stride == 32)
 		{
 			pStreamData->GetDesc(&vdesc);
 		}
 	}
 
 	return SetStreamSource_orig(pDevice, StreamNumber, pStreamData, OffsetInBytes, sStride);
+}
+
+//==========================================================================================================================
+
+HRESULT APIENTRY SetVertexDeclaration_hook(LPDIRECT3DDEVICE9 pDevice, IDirect3DVertexDeclaration9* pDecl)
+{
+	if (pDecl != NULL)
+	{
+		HRESULT hr = pDecl->GetDeclaration(decl, &numElements);
+		if (FAILED(hr))
+		{
+			//Log("GetDeclaration failed");
+		}
+	}
+
+	return SetVertexDeclaration_orig(pDevice, pDecl);
 }
 
 //==========================================================================================================================
@@ -458,7 +478,7 @@ HRESULT APIENTRY DrawIndexedPrimitive_hook(IDirect3DDevice9* pDevice, D3DPRIMITI
 	if (items > 0 && GRENADE)
 		AddEsp(pDevice, 2, "GRENADE", OrangeRed, 0.0f);
 
-	/*
+	
 	//small bruteforce logger
 	//ALT + CTRL + L toggles logger
 	if (logger)
@@ -470,19 +490,19 @@ HRESULT APIENTRY DrawIndexedPrimitive_hook(IDirect3DDevice9* pDevice, D3DPRIMITI
 			countnum++;
 		if ((GetAsyncKeyState(VK_MENU)) && (GetAsyncKeyState('9') & 1)) //reset, set to -1
 			countnum = -1;
-		if (countnum == NumVertices / 10 || countnum == vSize / 10)
+		if (countnum == numElements)
 			if (pSize > 44 && GetAsyncKeyState('I') & 1) //press I to log to log.txt
-				Log("Stride == %d && NumVertices == %d && primCount == %d && vSize == %d && pSize == %d && mStartRegister == %d && mVector4fCount == %d && vdesc.Size == %d && startIndex == %d", Stride, NumVertices, primCount, vSize, pSize, mStartRegister, mVector4fCount, vdesc.Size, startIndex);
+				Log("Stride == %d && NumVertices == %d && primCount == %d && vSize == %d && pSize == %d && decl->Type == %d && numElements == %d && mStartRegister == %d && mVector4fCount == %d && vdesc.Size == %d && startIndex == %d", Stride, NumVertices, primCount, vSize, pSize, decl->Type, numElements, mStartRegister, mVector4fCount, vdesc.Size, startIndex);
 				//Log("Stride == %d && NumVertices == %d && primCount == %d && vSize == %d && pSize == %d && mStartRegister == %d && mVector4fCount == %d && vdesc.Size == %d", Stride, NumVertices, primCount, vSize, pSize, mStartRegister, mVector4fCount, vdesc.Size);
 		pDevice->SetRenderState(D3DRS_FILLMODE, D3DFILL_SOLID);
-		if (countnum == NumVertices / 10 || countnum == vSize / 10)
+		if (countnum == numElements)
 		{
-			return D3D_OK; //delete texture
 			pDevice->SetTexture(0, NULL);
+			return D3D_OK; //delete texture
 			//pDevice->SetRenderState(D3DRS_FILLMODE, D3DFILL_WIREFRAME);
 		}
 	}
-	*/
+	
 	return DrawIndexedPrimitive_orig(pDevice, Type, BaseVertexIndex, MinVertexIndex, NumVertices, startIndex, primCount);
 }
 
@@ -490,20 +510,27 @@ HRESULT APIENTRY DrawIndexedPrimitive_hook(IDirect3DDevice9* pDevice, D3DPRIMITI
 
 HRESULT APIENTRY DrawPrimitive_hook(IDirect3DDevice9* pDevice, D3DPRIMITIVETYPE PrimitiveType, UINT StartVertex, UINT PrimitiveCount)
 {
-	//aimbot part 1
-	if (aimbot == 1) //best for pve
-		if (Stride == 24 && PrimitiveCount == 2 && vSize == 316 && pSize == 1084 && mStartRegister == 11 && mVector4fCount == 1 && dWidth == 64 && dHeight == 64) //level and crosshair
-		{
-			//worldtoscreen
-			AddAim(pDevice, 1);
-		}
+	if (aimbot == 1 && Stride == 24 && PrimitiveCount == 2 && vSize == 316 && pSize == 1084 && mStartRegister == 11 && mVector4fCount == 1 && dWidth == 8 && dHeight == 8)//hpbaronscreen
+		hpbaronscreen = true;
 
-	if (aimbot == 2) //best in pvp
-		if (Stride == 24 && PrimitiveCount == 2 && vSize == 316 && pSize == 1084 && mStartRegister == 11 && mVector4fCount == 1 && dWidth == 8 && dHeight == 8)//wholething
-		{
-			//worldtoscreen
-			AddAim(pDevice, 1);
-		}
+	//best for pve
+	if (aimbot == 1 && Stride == 24 && PrimitiveCount == 2 && vSize == 316 && pSize == 1084 && mStartRegister == 11 && mVector4fCount == 1 && decl->Type == 2 && numElements == 4 && mStartRegister == 11 && mVector4fCount == 1 && dWidth == 64 && dHeight == 64) //level and crosshair
+	//if (Stride == 24 && PrimitiveCount == 2 && vSize == 316 && pSize == 1084 && mStartRegister == 11 && mVector4fCount == 1 && dWidth == 64 && dHeight == 64) //level and crosshair
+	{
+		//if (GetAsyncKeyState(VK_F10) & 1) //press I to log to log.txt
+		//Log("Stride == %d && PrimitiveCount == %d && vSize == %d && pSize == %d && decl->Type == %d && numElements == %d && mStartRegister == %d && mVector4fCount == %d && dWidth == %d && dPitch == %d && dwTextureCRC == %x && texCRC == %x", Stride, PrimitiveCount, vSize, pSize, decl->Type, numElements, mStartRegister, mVector4fCount, dWidth, dPitch, dwTextureCRC, texCRC);
+			
+		//worldtoscreen
+		AddAim(pDevice, 1);
+	}
+
+	//best in pvp
+	if (aimbot == 2 && Stride == 24 && PrimitiveCount == 2 && vSize == 316 && pSize == 1084 && mStartRegister == 11 && mVector4fCount == 1 && decl->Type == 2 && numElements == 4 && mStartRegister == 11 && mVector4fCount == 1 && dWidth == 8 && dHeight == 8)//wholething
+	//if (aimbot == 2 && Stride == 24 && PrimitiveCount == 2 && vSize == 316 && pSize == 1084 && mStartRegister == 11 && mVector4fCount == 1 && dWidth == 8 && dHeight == 8)//hpbaronscreen
+	{
+		//worldtoscreen
+		AddAim(pDevice, 1);
+	}
 
 	return DrawPrimitive_orig(pDevice, PrimitiveType, StartVertex, PrimitiveCount);
 }
@@ -515,21 +542,14 @@ HRESULT APIENTRY EndScene_hook(IDirect3DDevice9* pDevice)
 	//sprite
 	PreClear(pDevice);
 
-	//pDevice->GetViewport(&Viewport); //get viewport
-	//ScreenCenterX = Viewport.Width / 2.0f;
-	//ScreenCenterY = Viewport.Height / 2.0f;
-
 	if (FirstInit == FALSE)
 	{
 		FirstInit = TRUE;
-		//pDevice->GetViewport(&Viewport); //get viewport
-		//ScreenCenterX = Viewport.Width / 2.0f;
-		//ScreenCenterY = Viewport.Height / 2.0f;
 
 		//generate shader
-		GenerateShader(pDevice, &shadRed, 1.0f, 0.0f, 0.0f, 0.5f, false);
-		GenerateShader(pDevice, &shadBlue, 0.0f, 0.0f, 1.0f, 0.5f, false);
-		GenerateShader(pDevice, &shadDepthBlue, 0.0f, 0.0f, 1.0f, 0.5f, true);
+		GenerateShader(pDevice, &shadRed, 1.0f, 0.0f, 0.0f, false);
+		GenerateShader(pDevice, &shadBlue, 0.0f, 0.0f, 1.0f, false);
+		GenerateShader(pDevice, &shadDepthBlue, 0.0f, 0.0f, 1.0f, true);
 		//GenerateShader(pDevice, &shadGreen, 0.0f, 1.0f, 0.0f, false);
 		//GenerateShader(pDevice, &shadYellow, 1.0f, 1.0f, 0.0f, false);
 
@@ -678,15 +698,23 @@ HRESULT APIENTRY EndScene_hook(IDirect3DDevice9* pDevice)
 	if (aimkey == 7) Daimkey = 0x58; //X
 	if (aimkey == 8) Daimkey = 0x43; //C
 
+	//if(hpbaronscreen)
+		//DrawString(pFont, (int)100, (int)100, Green, "hpbaronscreen");
+
 	//aimbot part 2
-	//if (aimbot > 0 && AimInfo.size() != NULL && GetAsyncKeyState(Daimkey))
-	if (aimbot > 0 && AimInfo.size() != NULL)
+	if (
+		(hpbaronscreen && aimbot == 1 && AimInfo.size() != NULL && GetAsyncKeyState(Daimkey))||
+		(aimbot == 2 && AimInfo.size() != NULL && GetAsyncKeyState(Daimkey))
+		)
+	//if (aimbot > 0 && AimInfo.size() != NULL)
 	{
 		UINT BestTarget = -1;
 		DOUBLE fClosestPos = 99999;
 
 		for (unsigned int i = 0; i < AimInfo.size(); i++)
 		{
+			//DrawString(pFont, (int)AimInfo[i].vOutX, (int)AimInfo[i].vOutY, Green, "O");
+
 			//aimfov
 			float radiusx = aimfov * (ScreenCenterX / 100.0f);
 			float radiusy = aimfov * (ScreenCenterY / 100.0f);
@@ -726,7 +754,8 @@ HRESULT APIENTRY EndScene_hook(IDirect3DDevice9* pDevice)
 			//DrawString(pFont, 200, 200, White, "%f", dstmultiplier);
 
 			//aim
-			if(GetAsyncKeyState(Daimkey) & 0x8000)
+			//if(GetAsyncKeyState(Daimkey) & 0x8000)
+			if(hpbaronscreen||aimbot == 2)
 			{
 				if (bestRealDistance > 0.0f && bestRealDistance <= 2.0f) //0-4
 					mouse_event(MOUSEEVENTF_MOVE, (float)DistX, (float)DistY + 29.0f, 0, NULL);
@@ -744,7 +773,7 @@ HRESULT APIENTRY EndScene_hook(IDirect3DDevice9* pDevice)
 			}
 
 			//autoshoot on
-			if ( (autoshoot == 1)||(autoshoot == 2 && (GetAsyncKeyState(Daimkey) & 0x8000)) )
+			if ( (hpbaronscreen && autoshoot == 1)||(autoshoot == 2 && (GetAsyncKeyState(Daimkey) & 0x8000)) )
 			{
 				if (!IsPressed)
 				{
@@ -753,8 +782,10 @@ HRESULT APIENTRY EndScene_hook(IDirect3DDevice9* pDevice)
 				}
 			}
 		}
+		//hpbaronscreen = false;
 	}
 	AimInfo.clear();
+	hpbaronscreen = false;
 
 	if (autoshoot > 0 && IsPressed)
 	{
@@ -766,7 +797,7 @@ HRESULT APIENTRY EndScene_hook(IDirect3DDevice9* pDevice)
 		}
 		//gametick = timeGetTime();
 	}
-	/*
+	
 	//logger
 	if ((GetAsyncKeyState(VK_MENU)) && (GetAsyncKeyState(VK_CONTROL)) && (GetAsyncKeyState(0x4C) & 1)) //ALT + CTRL + L toggles logger
 		logger = !logger;
@@ -779,7 +810,7 @@ HRESULT APIENTRY EndScene_hook(IDirect3DDevice9* pDevice)
 		DrawString(pFont, 220, 120, Yellow, "hold O to -");
 		DrawString(pFont, 220, 130, Green, "press I to log");
 	}
-	*/
+	
 	return EndScene_orig(pDevice);
 }
 
@@ -788,33 +819,34 @@ HRESULT APIENTRY EndScene_hook(IDirect3DDevice9* pDevice)
 HRESULT APIENTRY SetTexture_hook(IDirect3DDevice9* pDevice, DWORD Sampler, IDirect3DBaseTexture9 *pTexture)
 {
 	//mStage = Sampler;
-	
-	pCurrentTexture = static_cast<IDirect3DTexture9*>(pTexture);
 
-	if (Stride == 24 && Sampler == 0 && pCurrentTexture)
-	{
-		if (reinterpret_cast<IDirect3DTexture9 *>(pCurrentTexture)->GetType() == D3DRTYPE_TEXTURE)
+	//if (Stride == 24 && decl->Type == 2 && numElements == 4 && mStartRegister == 11 && mVector4fCount == 1 && Sampler == 0 && pTexture)//reduce fps loss
+	if (Stride == 24 && vSize == 316 && pSize == 1084 && decl->Type == 2 && numElements == 4 && mStartRegister == 11 && mVector4fCount == 1 && Sampler == 0 && pTexture)//reduce fps loss
+	{//1
+		pCurrentTex = static_cast<IDirect3DTexture9*>(pTexture);
+
+		//if (pCurrentTex)//
+		//{
+		D3DSURFACE_DESC surfaceDesc;
+
+		if (FAILED(pCurrentTex->GetLevelDesc(0, &surfaceDesc)))
 		{
-			pCurrentTexture->GetLevelDesc(0, &desc);
-			if (desc.Pool == D3DPOOL_DEFAULT) 
-			//if (desc.Pool == D3DPOOL_MANAGED) 
+			//Log("surfaceDesc failed");
+			goto out;
+		}
+
+		if (SUCCEEDED(pCurrentTex->GetLevelDesc(0, &surfaceDesc)))
+			if (surfaceDesc.Pool == D3DPOOL_DEFAULT && pCurrentTex->GetType() == D3DRTYPE_TEXTURE) //reduce fps loss
 			{
-				dWidth = desc.Width;
-				dHeight = desc.Height;
+				//Textures created with D3DPOOL_DEFAULT are not lockable
+				//In this case, use GetRenderTargetData to copy texture data from device memory to system memory
 
-				//pCurrentTexture->LockRect(0, &pLockedRect, NULL, D3DLOCK_NOOVERWRITE | D3DLOCK_READONLY); //no
-				//pCurrentTexture->LockRect(0, &pLockedRect, NULL, 0); //low fps
-				//pCurrentTexture->LockRect(0, &pLockedRect, NULL, D3DLOCK_NO_DIRTY_UPDATE); //low fps
-
-				//if (pLockedRect.pBits != NULL)
-				//get crc
-				//texCRC = QuickChecksum((DWORD*)pLockedRect.pBits, 1024);
-
-				//pCurrentTexture->UnlockRect(0);
+				dWidth = surfaceDesc.Width;
+				dHeight = surfaceDesc.Height;
+					
 			}
 		}
-	}
-	
+	out:
 
 	return SetTexture_orig(pDevice, Sampler, pTexture);
 }
@@ -842,31 +874,10 @@ HRESULT APIENTRY Reset_hook(IDirect3DDevice9* pDevice, D3DPRESENT_PARAMETERS *pP
 
 	HRESULT ResetReturn = Reset_orig(pDevice, pPresentationParameters);
 
-	HRESULT cooperativeStat = pDevice->TestCooperativeLevel();
-
-	switch (cooperativeStat)
-	{
-	case D3DERR_DEVICELOST:
-		//Log("D3DERR_DEVICELOST");
-		break;
-	case D3DERR_DEVICENOTRESET:
-		//Log("D3DERR_DEVICENOTRESET");
-		break;
-	case D3DERR_DRIVERINTERNALERROR:
-		//Log("D3DERR_DRIVERINTERNALERROR");
-		break;
-	case D3D_OK:
-		break;
-	}
-
 	if (SUCCEEDED(ResetReturn))
 	{
 		if (pFont)
 			pFont->OnResetDevice();
-
-		//pDevice->GetViewport(&Viewport);
-		//ScreenCenterX = Viewport.Width / 2.0f;
-		//ScreenCenterY = Viewport.Height / 2.0f;
 	}
 
 	return ResetReturn;
@@ -937,6 +948,7 @@ DWORD WINAPI DirectXInit(__in  LPVOID lpParameter)
 	DrawPrimitive_orig = (DrawPrimitive)dVtable[81];
 	Reset_orig = (Reset)dVtable[16];
 	SetStreamSource_orig = (SetStreamSource)dVtable[100];
+	SetVertexDeclaration_orig = (SetVertexDeclaration)dVtable[87];
 	SetVertexShader_orig = (SetVertexShader)dVtable[92];
 	SetPixelShader_orig = (SetPixelShader)dVtable[107];
 	SetTexture_orig = (SetTexture)dVtable[65];
@@ -956,6 +968,8 @@ DWORD WINAPI DirectXInit(__in  LPVOID lpParameter)
 	if (MH_EnableHook((DWORD_PTR*)dVtable[16]) != MH_OK) { return 1; }
 	if (MH_CreateHook((DWORD_PTR*)dVtable[100], &SetStreamSource_hook, reinterpret_cast<void**>(&SetStreamSource_orig)) != MH_OK) { return 1; }
 	if (MH_EnableHook((DWORD_PTR*)dVtable[100]) != MH_OK) { return 1; }
+	if (MH_CreateHook((DWORD_PTR*)dVtable[87], &SetVertexDeclaration_hook, reinterpret_cast<void**>(&SetVertexDeclaration_orig)) != MH_OK) { return 1; }
+	if (MH_EnableHook((DWORD_PTR*)dVtable[87]) != MH_OK) { return 1; }
 	if (MH_CreateHook((DWORD_PTR*)dVtable[92], &SetVertexShader_hook, reinterpret_cast<void**>(&SetVertexShader_orig)) != MH_OK) { return 1; }
 	if (MH_EnableHook((DWORD_PTR*)dVtable[92]) != MH_OK) { return 1; }
 	if (MH_CreateHook((DWORD_PTR*)dVtable[107], &SetPixelShader_hook, reinterpret_cast<void**>(&SetPixelShader_orig)) != MH_OK) { return 1; }

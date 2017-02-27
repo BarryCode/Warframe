@@ -23,8 +23,18 @@ using namespace std;
 
 HMODULE dllHandle;
 
-//Stride
+//drawindexedprimitive Stride
 UINT Stride;
+
+//elementcount
+D3DVERTEXELEMENT9 decl[MAXD3DDECLLENGTH];
+UINT numElements;
+
+//drawprimitive Stride
+//IDirect3DVertexBuffer9 *dStreamData;
+//UINT dOffset = 0;
+//UINT dStride = 0;
+//D3DVERTEXBUFFER_DESC ddesc;
 
 //vertexshader
 IDirect3DVertexShader9* vShader;
@@ -34,31 +44,27 @@ UINT vSize;
 IDirect3DPixelShader9* pShader;
 UINT pSize;
 
-//texture
-D3DLOCKED_RECT pLockedRect;
-D3DSURFACE_DESC desc;
-IDirect3DTexture9* pCurrentTexture;
-int mStage;
-
-//crc
-//DWORD texCRC;
-
 // model rec
 UINT mStartRegister;
 UINT mVector4fCount;
 
+bool hpbaronscreen=false; //whole hp bar on screen
+
 //gettexture
-LPDIRECT3DBASETEXTURE9 tex = NULL;
+IDirect3DTexture9* pCurrentTex = NULL;
 int dWidth;
 int dHeight;
+int dFormat;
 //int dPitch;
+//void *pData;
+//DWORD qCRC;
 
 //esp model distance
 float bestRealDistance;
 
 //used for logging/cycling through values
-//bool logger = false;
-//int countnum = -1;
+bool logger = false;
+int countnum = -1;
 
 bool FirstInit = false; //init once
 
@@ -221,6 +227,7 @@ DWORD QuickChecksum(DWORD *pData, int size)
 
 	return sum;
 }
+
 //==========================================================================================================================
 
 // colors
@@ -295,7 +302,7 @@ int CheckTabs(int x, int y, int w, int h)
 		{
 			if (GetAsyncKeyState(VK_LBUTTON) & 1)
 			{
-				return 1;
+				//return 1; //mouse selection OFF
 			}
 			return 2;
 		}
@@ -578,21 +585,16 @@ IDirect3DPixelShader9 *shadLimon;
 IDirect3DPixelShader9 *shadPink;
 IDirect3DPixelShader9 *shadWhite;
 
-//generate shader
-HRESULT GenerateShader(IDirect3DDevice9 *pDevice, IDirect3DPixelShader9 **pShader, float r, float g, float b, float a, bool setzBuf)
+HRESULT GenerateShader(IDirect3DDevice9 *pD3Ddev, IDirect3DPixelShader9 **pShader, float r, float g, float b, bool setzBuf)
 {
 	char szShader[256];
 	ID3DXBuffer *pShaderBuf = NULL;
-	D3DCAPS9 caps;
-	pDevice->GetDeviceCaps(&caps);
-	int PXSHVER1 = (D3DSHADER_VERSION_MAJOR(caps.PixelShaderVersion));
-	int PXSHVER2 = (D3DSHADER_VERSION_MINOR(caps.PixelShaderVersion));
 	if (setzBuf)
-		sprintf_s(szShader, "ps.%d.%d\ndef c0, %f, %f, %f, %f\nmov oC0,c0\nmov oDepth, c0.x", PXSHVER1, PXSHVER2, r, g, b, a);
+		sprintf_s(szShader, "ps_3_0\ndef c0, %f, %f, %f, %f\nmov oC0,c0\nmov oDepth, c0.x", r, g, b, 1.0f);
 	else
-		sprintf_s(szShader, "ps.%d.%d\ndef c0, %f, %f, %f, %f\nmov oC0,c0", PXSHVER1, PXSHVER2, r, g, b, a);
-	D3DXAssembleShader(szShader, sizeof(szShader), NULL, NULL, 0, &pShaderBuf, NULL);
-	if (FAILED(pDevice->CreatePixelShader((const DWORD*)pShaderBuf->GetBufferPointer(), pShader)))return E_FAIL;
+		sprintf_s(szShader, "ps_3_0\ndef c0, %f, %f, %f, %f\nmov oC0,c0", r, g, b, 1.0f);
+	D3DXAssembleShader(szShader, (strlen(szShader) + 1), NULL, NULL, 0, &pShaderBuf, NULL);
+	if (FAILED(pD3Ddev->CreatePixelShader((const DWORD*)pShaderBuf->GetBufferPointer(), pShader)))return E_FAIL;
 	return S_OK;
 }
 
