@@ -11,8 +11,6 @@
 #pragma comment(lib, "DXSDK/x86/d3dx9.lib")
 #endif
 
-//#include <d3dx9.h>
-//#pragma comment(lib, "d3dx9.lib") 
 #pragma comment(lib, "winmm.lib")
 #include "MinHook/include/MinHook.h" //detour
 using namespace std;
@@ -23,18 +21,11 @@ using namespace std;
 
 HMODULE dllHandle;
 
-//drawindexedprimitive Stride
 UINT Stride;
 
 //elementcount
 D3DVERTEXELEMENT9 decl[MAXD3DDECLLENGTH];
 UINT numElements;
-
-//drawprimitive Stride
-//IDirect3DVertexBuffer9 *dStreamData;
-//UINT dOffset = 0;
-//UINT dStride = 0;
-//D3DVERTEXBUFFER_DESC ddesc;
 
 //vertexshader
 IDirect3DVertexShader9* vShader;
@@ -44,58 +35,64 @@ UINT vSize;
 IDirect3DPixelShader9* pShader;
 UINT pSize;
 
-// model rec
+//startregister vector4fcount
 UINT mStartRegister;
 UINT mVector4fCount;
 
-bool hpbaronscreen=false; //whole hp bar on screen
+//settexture
+IDirect3DTexture9* sCurrentTex = NULL;
+int sWidth;
+int sHeight;
+int sFormat;
+DWORD qCRC;
+DWORD qCRC2;
+DWORD dwSize;
 
-//gettexture
-IDirect3DTexture9* pCurrentTex = NULL;
+//drawprimitive gettexture
+LPDIRECT3DBASETEXTURE9 dTexture = nullptr;
+IDirect3DTexture9* dCurrentTex = NULL;
 int dWidth;
 int dHeight;
 int dFormat;
-//int dPitch;
-//void *pData;
-//DWORD qCRC;
 
 //esp model distance
 float bestRealDistance;
 
 //used for logging/cycling through values
 bool logger = false;
-int countnum = -1;
+int countnum = 1;
 
 bool FirstInit = false; //init once
 
 //vdesc.Size
-D3DVERTEXBUFFER_DESC vdesc;
+//D3DVERTEXBUFFER_DESC vdesc;
 
-DWORD dwStartTime = 0; //time as the timer started
-DWORD dwTime = 0; //windowsuptime
-//bool bResetStartTime = true; //refresh starttime
+//viewport
+D3DVIEWPORT9 Viewport; //use this viewport
+float ScreenCenterX;
+float ScreenCenterY;
+
+//aim
+float aimOneX, aimOneY, aimTwoX, aimTwoY, aimBestX, aimBestY;
+
+IDirect3DIndexBuffer9* ppIndexData;
+D3DINDEXBUFFER_DESC iDesc;
+
+//DWORD dwStartTime = 0; //time as the timer started
+//DWORD dwTime = 0; //windowsuptime
+
+//=====================================================================================================================
+
+//model recogntion: (outdated)
 
 //models
 #define MODELS (mStartRegister == 52 && mVector4fCount >= 82)
 
 //shiny glow around caches and everything
 #define CACHE_GLOW (Stride == 24 && vSize == 352 && pSize == 540 && mStartRegister == 12 && mVector4fCount == 1)
-#define STUFFTHATSHOULDNOTGLOW (NumVertices == 258 || NumVertices == 98 || NumVertices == 428 || NumVertices == 462 || NumVertices == 507 || NumVertices == 1432 || NumVertices == 1376 || NumVertices == 355 || NumVertices == 1619)
-//NumVertices == 746 small container
-//NumVertices == 994 && 999 big container
-//NumVertices == 258 & 462 & 507 & 98 & 428 ammo
-//NumVertices == 1432 credits
-//NumVertices == 355 resource
-//NumVertices == 1619 mod
 
-//yellow round thing, blue round thing, mod thing1&2&3, credits
-#define YELLOWPART ((Stride == 24 && NumVertices == 355 && primCount == 297 && vSize == 768 && /*pSize == 1252 && */mStartRegister == 18 && mVector4fCount == 1)|| \
-(Stride == 24 && NumVertices == 355 && primCount == 297 && vSize == 352 && /*pSize == 540 && */mStartRegister == 12 && mVector4fCount == 1))
-
-#define BLUEPART ((Stride == 24 && NumVertices == 355 && primCount == 297 && vSize == 768 && /*pSize == 1224 && */mStartRegister == 18 && mVector4fCount == 1)|| \
-(Stride == 24 && NumVertices == 355 && primCount == 297 && vSize == 768 && /*pSize == 1492 && */mStartRegister == 18 && mVector4fCount == 1))
-
-#define MOD1 ((Stride == 24 && NumVertices == 1619 && vSize == 768 && /*pSize == 1460 && */mStartRegister == 18 && mVector4fCount == 1)|| \
+//mods
+#define MOD ((Stride == 24 && NumVertices == 1619 && vSize == 768 && /*pSize == 1460 && */mStartRegister == 18 && mVector4fCount == 1)|| \
 (Stride == 24 && NumVertices == 1619 && primCount == 596 && vSize == 768 && /*pSize == 1724 && */mStartRegister == 18 && mVector4fCount == 1)|| \
 (Stride == 24 && NumVertices == 1619 && primCount == 596 && vSize == 352 && /*pSize == 540 && */mStartRegister == 12 && mVector4fCount == 1)|| \
 (Stride == 24 && NumVertices == 1619 && primCount == 2384 && vSize == 768 && /*pSize == 1724 && */mStartRegister == 18 && mVector4fCount == 1)|| \
@@ -106,83 +103,30 @@ DWORD dwTime = 0; //windowsuptime
 (Stride == 24 && NumVertices == 1619 && primCount == 953 && vSize == 768 && /*pSize == 1724 && */mStartRegister == 11 && mVector4fCount == 1)|| \
 (Stride == 24 && NumVertices == 1619 && primCount == 953 && vSize == 352 && /*pSize == 540 && */mStartRegister == 12 && mVector4fCount == 1))
 
-#define CREDITS ((Stride == 24 && NumVertices == 1377 && vSize == 804 && /*pSize == 2612 && */mStartRegister == 12 && mVector4fCount == 1)|| \
-(Stride == 24 && NumVertices == 1432 && vSize == 352 && /*pSize == 540 && */mStartRegister == 12 && mVector4fCount == 1)|| \
-(Stride == 24 && NumVertices == 1376 && primCount == 193 && vSize == 352 && /*pSize == 540 && */mStartRegister == 12 && mVector4fCount == 1)|| \
-(Stride == 24 && NumVertices == 1376 && primCount == 193 && vSize == 804 && /*pSize == 3144 && */mStartRegister == 15 && mVector4fCount == 1)|| \
-(Stride == 24 && NumVertices == 1376 && primCount == 776 && vSize == 352 && /*pSize == 540 && */mStartRegister == 12 && mVector4fCount == 1)|| \
-(Stride == 24 && NumVertices == 1376 && primCount == 776 && vSize == 804 && /*pSize == 3144 && */mStartRegister == 15 && mVector4fCount == 1)|| \
-(Stride == 24 && NumVertices == 1376 && primCount == 582 && vSize == 352 && /*pSize == 540 && */mStartRegister == 12 && mVector4fCount == 1)||\
-(Stride == 24 && NumVertices == 1376 && primCount == 582 && vSize == 804 && /*pSize == 3144 && */mStartRegister == 15 && mVector4fCount == 1)||\
-(Stride == 24 && NumVertices == 1376 && primCount == 309 && vSize == 816 && /*pSize == 3144 && */mStartRegister == 15 && mVector4fCount == 1))
+//=====================================================================================================================
 
-#define GRENADE ((Stride == 24 && NumVertices == 223 && primCount == 332 && vSize == 768 && /*pSize == 1636 && */mStartRegister == 18 && mVector4fCount == 1)|| \
-(Stride == 24 && NumVertices == 223 && primCount == 128 && vSize == 768 && /*pSize == 1636 && */mStartRegister == 18 && mVector4fCount == 1)|| \
-(Stride == 24 && NumVertices == 223 && primCount == 249 && vSize == 768 && /*pSize == 1636 && */mStartRegister == 18 && mVector4fCount == 1)|| \
-(Stride == 24 && NumVertices == 223 && primCount == 332 && vSize == 840 && /*pSize == 2076 && */mStartRegister == 18 && mVector4fCount == 1))
-//(Stride == 24 && NumVertices == 223 && primCount == 332 && vSize == 608 && /*pSize == 732 && */mStartRegister == 20 && mVector4fCount == 1)|| \
-//(Stride == 24 && NumVertices == 223 && primCount == 222 && vSize == 680 && /*pSize == 1280 && */mStartRegister == 15 && mVector4fCount == 1)|| \
-//(Stride == 24 && NumVertices == 223 && primCount == 332 && vSize == 188 && /*pSize == 60 && */mStartRegister == 13 && mVector4fCount == 1))
+// settings
+int crosshair = 0;				//crosshair
+int wallhack = 1;				//wallhack
+int chams = 2;					//chams
+int items = 2;					//items
+int cacheglow = 0;				//glow around caches
+int aimbot = 1;					//aimbot
+int aimsens = 3;				//aim sens
+int aimheight = 4;				//aim height
+int aimcheckespfov = 0;			//reduce aimdown while reloading
+int esp = 0;					//esp
+int autoshoot = 2;				//autoshoot
 
-//rare and reinforced grineer, may have changed with new patch
-#define Rare_Grineer_Container (Stride == 24 && NumVertices == 1063 && primCount == 1184 && vSize == 840 && /*pSize == 1740 && */mStartRegister == 18 && mVector4fCount == 1)
-#define Reinforced_Grineer_Container_MetalPlatesA (Stride == 24 && NumVertices == 104 && primCount == 520 && vSize == 768 && /*pSize == 1264 && */mStartRegister == 18 && mVector4fCount == 1)
-#define Reinforced_Grineer_Container_MetalPlatesB (Stride == 24 && NumVertices == 440 && primCount == 520 && vSize == 768 && /*pSize == 1264 && */mStartRegister == 18 && mVector4fCount == 1)
-#define Reinforced_Grineer_Container_Glow (Stride == 24 && NumVertices == 247 && primCount == 384 && vSize == 492 && /*pSize == 904 && */mStartRegister == 16 && mVector4fCount == 1)
-#define Reinforced_Orokin_Container_Frame (Stride == 24 && NumVertices == 6045 && primCount == 3216 && vSize == 804 && /*pSize == 3016 && */mStartRegister == 12 && mVector4fCount == 1)
-#define RareandNormal_Orokin_Container (Stride == 24 && NumVertices == 1505 && primCount == 1880 && vSize == 900 && /*pSize == 3884 && */mStartRegister == 12 && mVector4fCount == 1) //no, dfr
-
-#define RARECONTAINER (Rare_Grineer_Container||Reinforced_Grineer_Container_MetalPlatesA||Reinforced_Grineer_Container_MetalPlatesB||Reinforced_Grineer_Container_Glow||Reinforced_Orokin_Container_Frame)
-
-#define MISC (YELLOWPART||BLUEPART||MOD1||CREDITS||RARECONTAINER||RareandNormal_Orokin_Container)
-
-//corpus helmet
-//Stride == 24 && NumVertices == 572 && primCount == 228 && vSize == 864 && pSize == 2444 && mStartRegister == 24 && mVector4fCount == 1 && vdesc.Size == 50432
-
-//Rare Grineer Container _/
-//Rare Corpus Container
-//Rare Orokin Container _/
-//Reinforced Grineer Container _/
-//Reinforced Corpus Container
-//Reinforced Orokin Container
-//Syndicate Medallions(18)
-
-#define PLAYERS (vdesc.Size == 113216 || \
-	vdesc.Size == 93312 || \
-	vdesc.Size == 203456 || \
-	vdesc.Size == 147328 || \
-	vdesc.Size == 160064 || \
-	vdesc.Size == 245504 || \
-	vdesc.Size == 166272 || \
-	vdesc.Size == 264640 || \
-	vdesc.Size == 174080 || \
-	vdesc.Size == 263040 || \
-	vdesc.Size == 358912 || \
-	vdesc.Size == 349920 || \
-	vdesc.Size == 204512 || \
-	vdesc.Size == 103904 || \
-	vdesc.Size == 126752 || \
-	vdesc.Size == 405984 || \
-	vdesc.Size == 223872 || \
-	vdesc.Size == 281088 || \
-	vdesc.Size == 284160 || \
-	vdesc.Size == 151168 || \
-	vdesc.Size == 115200 || \
-	vdesc.Size == 229696 || \
-	vdesc.Size == 113696 || \
-	vdesc.Size == 178464 || \
-	vdesc.Size == 115968 || \
-	vdesc.Size == 244736 || \
-	vdesc.Size == 119808 || \
-	vdesc.Size == 130208 || \
-	vdesc.Size == 197952 || \
-	vdesc.Size == 269632)
+DWORD Daimkey = VK_RBUTTON;		//aimkey
+int aimkey = 2;					//aimkey menu value
+int aimfov = 40;				//aim fov in % (40+ may create problems)
+int espfov = 90;				//esp fov in % 90
+bool IsPressed = false;			//
+DWORD gametick = timeGetTime(); //autoshoot timer
+unsigned int asdelay = 1;		//1-4
 
 //==========================================================================================================================
-
-D3DVIEWPORT9 Viewport; //use this viewport
-float ScreenCenterX;
-float ScreenCenterY;
 
 // getdir & log
 char dlldir[320];
@@ -228,6 +172,203 @@ DWORD QuickChecksum(DWORD *pData, int size)
 	return sum;
 }
 
+void doDisassembleShader(LPDIRECT3DDEVICE9 pDevice, char* FileName)
+{
+	std::ofstream oLogFile(FileName, std::ios::trunc);
+
+	if (!oLogFile.is_open())
+		return;
+
+	IDirect3DVertexShader9* pShader;
+
+	pDevice->GetVertexShader(&pShader);
+
+	UINT pSizeOfData;
+
+	pShader->GetFunction(NULL, &pSizeOfData);
+
+	BYTE* pData = new BYTE[pSizeOfData];
+
+	pShader->GetFunction(pData, &pSizeOfData);
+
+	LPD3DXBUFFER bOut;
+
+	D3DXDisassembleShader(reinterpret_cast<DWORD*>(pData), NULL, NULL, &bOut);
+
+	oLogFile << static_cast<char*>(bOut->GetBufferPointer()) << std::endl;
+
+	oLogFile.close();
+
+	delete[] pData;
+
+	pShader->Release();
+
+}
+
+//=====================================================================================================================
+
+//get distance
+float GetDistance(float Xx, float Yy, float xX, float yY)
+{
+	return sqrt((yY - Yy) * (yY - Yy) + (xX - Xx) * (xX - Xx));
+}
+
+//aim worldtoscreen
+struct AimInfo_t
+{
+	float vOutX, vOutY;
+	INT       iTeam;
+	float CrosshairDistance;
+};
+std::vector<AimInfo_t>AimInfo;
+
+void AddAim(LPDIRECT3DDEVICE9 Device, int iTeam)
+{
+	float aimx, aimy; //aimz;
+	D3DXMATRIX matrix, m1;
+	D3DXVECTOR4 position, input;
+	Device->GetVertexShaderConstantF(0, matrix, 4);
+	
+	input.x = 0.0f;
+	input.y = 0.0f;
+	input.z = 0.0f;
+	input.w = 1.0f;
+
+	//adjust aimheight
+	//if (aimbot == 1)
+		//input.x = 0.0f; //do not move left if aiming at lvl bar in pve
+	//else if (aimbot == 2)
+		//input.x = 1000.0f; //move left to aim at center of hp bar in pvp
+
+	if (aimkey == 2 && GetAsyncKeyState(VK_RBUTTON) & 0x8000)
+		input.y += 700.0f + ((float)aimheight * 80.0f);
+	else
+		input.y += 400.0f + ((float)aimheight * 40.0f);
+
+
+	D3DXMatrixTranspose(&m1, &matrix);
+	//D3DXVec4Transform(&position, &input, &m1);
+
+	position.x = input.x * matrix._11 + input.y * matrix._21 + input.z * matrix._31 + matrix._41;
+	position.y = input.x * matrix._12 + input.y * matrix._22 + input.z * matrix._32 + matrix._42;
+	position.z = input.x * matrix._13 + input.y * matrix._23 + input.z * matrix._33 + matrix._43;
+	position.w = input.x * matrix._14 + input.y * matrix._24 + input.z * matrix._34 + matrix._44;
+
+	//aimz = Viewport.MinZ + position.z * (Viewport.MaxZ - Viewport.MinZ); //real distance
+
+	if (matrix._44 > 1.0f)
+	{
+		aimx = ((position.x / position.w) * (Viewport.Width / 2.0f)) + Viewport.X + (Viewport.Width / 2.0f);
+		aimy = Viewport.Y + (Viewport.Height / 2.0f) - ((position.y / position.w) * (Viewport.Height / 2.0f));
+
+		AimInfo_t pAimInfo = { static_cast<float>(aimx), static_cast<float>(aimy), iTeam };
+
+		AimInfo.push_back(pAimInfo);
+	}
+}
+
+
+//aim2 
+struct AimInfo2_t
+{
+	float vOutX, vOutY;
+	INT       iTeam;
+	float CrosshairDistance;
+};
+std::vector<AimInfo2_t>AimInfo2;
+
+void AddAim2(LPDIRECT3DDEVICE9 Device, int iTeam)
+{
+	float aimx, aimy; //aimz;
+	D3DXMATRIX matrix, m1;
+	D3DXVECTOR4 position, input;
+	Device->GetVertexShaderConstantF(0, matrix, 4);
+
+	input.x = 1000.0f;
+	input.y = 877.0f;
+	input.z = 0.0f;
+	input.w = 1.0f;
+
+	//adjust aimheight
+	//if (aimbot == 1)
+		//input.x = 0.0f; //do not move left if aiming at lvl bar in pve
+	//else if (aimbot == 2)
+		//input.x = 1000.0f; //move left to aim at center of hp bar in pvp
+
+	if (aimkey == 2 && GetAsyncKeyState(VK_RBUTTON) & 0x8000)
+		input.y += 700.0f + ((float)aimheight * 80.0f);
+	else
+		input.y += 400.0f + ((float)aimheight * 40.0f);
+
+
+	D3DXMatrixTranspose(&m1, &matrix);
+	//D3DXVec4Transform(&position, &input, &m1);
+
+	position.x = input.x * matrix._11 + input.y * matrix._21 + input.z * matrix._31 + matrix._41;
+	position.y = input.x * matrix._12 + input.y * matrix._22 + input.z * matrix._32 + matrix._42;
+	position.z = input.x * matrix._13 + input.y * matrix._23 + input.z * matrix._33 + matrix._43;
+	position.w = input.x * matrix._14 + input.y * matrix._24 + input.z * matrix._34 + matrix._44;
+
+	//aimz = Viewport.MinZ + position.z * (Viewport.MaxZ - Viewport.MinZ); //real distance
+
+	if (matrix._44 > 1.0f)
+	{
+		aimx = ((position.x / position.w) * (Viewport.Width / 2.0f)) + Viewport.X + (Viewport.Width / 2.0f);
+		aimy = Viewport.Y + (Viewport.Height / 2.0f) - ((position.y / position.w) * (Viewport.Height / 2.0f));
+
+		AimInfo2_t pAimInfo2 = { static_cast<float>(aimx), static_cast<float>(aimy), iTeam };
+
+		AimInfo2.push_back(pAimInfo2);
+	}
+}
+
+
+// esp worldtoscreen
+struct EspInfo_t
+{
+	float vOutX, vOutY;
+	INT       iTeam;
+	char* oName;
+	D3DCOLOR cColor;
+	float RealDistance;
+	float CrosshairDistance;
+};
+std::vector<EspInfo_t>EspInfo;
+bool inespfov = false;
+
+void AddEsp(LPDIRECT3DDEVICE9 Device, int iTeam, char* oName, D3DCOLOR cColor, float YHeight)
+{
+	float espx, espy, espz;
+	D3DXMATRIX matrix, m1;
+	D3DXVECTOR4 position, input;
+	Device->GetVertexShaderConstantF(0, matrix, 4);
+
+	input.x = 0.0f;
+	input.y = YHeight; //1.5fdefault, 0.0f for items==1
+	input.z = 0.0f;
+	input.w = 1.0f;
+
+	D3DXMatrixTranspose(&m1, &matrix);
+	//D3DXVec4Transform(&position, &input, &m1); 
+
+	position.x = input.x * matrix._11 + input.y * matrix._21 + input.z * matrix._31 + matrix._41;
+	position.y = input.x * matrix._12 + input.y * matrix._22 + input.z * matrix._32 + matrix._42;
+	position.z = input.x * matrix._13 + input.y * matrix._23 + input.z * matrix._33 + matrix._43;
+	position.w = input.x * matrix._14 + input.y * matrix._24 + input.z * matrix._34 + matrix._44;
+
+	espz = Viewport.MinZ + position.z * (Viewport.MaxZ - Viewport.MinZ); //real distance
+
+	if (espz > 0.0f && matrix._44 > 1.0f)
+	{
+		espx = ((position.x / position.w) * (Viewport.Width / 2.0f)) + Viewport.X + (Viewport.Width / 2.0f);
+		espy = Viewport.Y + (Viewport.Height / 2.0f) - ((position.y / position.w) * (Viewport.Height / 2.0f));
+
+		EspInfo_t pModelInfo = { static_cast<float>(espx), static_cast<float>(espy), iTeam, oName, cColor, espz };
+
+		EspInfo.push_back(pModelInfo);
+	}
+}
+
 //==========================================================================================================================
 
 // colors
@@ -269,6 +410,18 @@ DWORD QuickChecksum(DWORD *pData, int size)
 #define TBlack				D3DCOLOR_ARGB(180, 000, 000, 000) 
 
 //==========================================================================================================================
+
+// menu part
+char *opt_OnOff[] = { "[OFF]", "[ON]" };
+char *opt_Keys[] = { "[OFF]", "[Shift]", "[RMouse]", "[LMouse]", "[Ctrl]", "[Alt]", "[Space]", "[X]", "[C]" };
+char *opt_Chams[] = { "[OFF]", "[NPCs 1]", "[NPCs 2]", "[Players 3]" };
+char *opt_Items[] = { "[OFF]", "[Text]", "[Esp/Text]" };
+char *opt_onetwo[] = { "[OFF]", "[1]", "[2]" };
+char *opt_Autoshoot[] = { "[OFF]", "[Auto]", "[OnKeyDown]" };
+char *opt_Sensitivity[] = { "[OFF]", "[2]", "[3]", "[4]", "[5]", "[6]", "[7]", "[8]", "[9]" };
+char *opt_Aimheight[] = { "[0]", "[-1]", "[-2]", "[-3]", "[-4]", "[-5]", "[-6]" };
+char *opt_Esp[] = { "[OFF]", "[Box]", "[Pic]" };
+char *opt_Aimbot[] = { "[OFF]", "[PvE]", "[PvP]" };
 
 // menu
 
@@ -527,6 +680,67 @@ void AddItem(LPDIRECT3DDEVICE9 pDevice, char *text, int &var, char **opt, int Ma
 
 //==========================================================================================================================
 
+void BuildMenu(LPDIRECT3DDEVICE9 pDevice)
+{
+	if (GetAsyncKeyState(VK_INSERT) & 1)
+	{
+		Show = !Show;
+
+		//save settings
+		Save("Crosshair", "Crosshair", crosshair, GetDirectoryFile("settings.ini"));
+		Save("Wallhack", "Wallhack", wallhack, GetDirectoryFile("settings.ini"));
+		Save("Chams", "Chams", chams, GetDirectoryFile("settings.ini"));
+		Save("Items", "Items", items, GetDirectoryFile("settings.ini"));
+		Save("CacheGlow", "CacheGlow", cacheglow, GetDirectoryFile("settings.ini"));
+		Save("Aimbot", "Aimbot", aimbot, GetDirectoryFile("settings.ini"));
+		Save("Aimkey", "Aimkey", aimkey, GetDirectoryFile("settings.ini"));
+		Save("Aimsens", "Aimsens", aimsens, GetDirectoryFile("settings.ini"));
+		Save("Aimheight", "Aimheight", aimheight, GetDirectoryFile("settings.ini"));
+		Save("AimCheckEspFov", "AimCheckEspFov", aimcheckespfov, GetDirectoryFile("settings.ini"));
+		Save("Esp", "Esp", esp, GetDirectoryFile("settings.ini"));
+		Save("Autoshoot", "Autoshoot", autoshoot, GetDirectoryFile("settings.ini"));
+	}
+
+	if (Show)
+	{
+		if (GetAsyncKeyState(VK_UP) & 1)
+			MenuSelection--;
+
+		if (GetAsyncKeyState(VK_DOWN) & 1)
+			MenuSelection++;
+
+		//Background
+		FillRGB(pDevice, 25, 38, 157, 186, TBlack);
+
+		DrawBox(pDevice, 20, 15, 168, 20, DarkOutline);
+		cWriteText(105, 18, White, "Warframe D3D");
+		DrawBox(pDevice, 20, 34, 168, Current * 15, DarkOutline);
+
+		Current = 1;
+		//Category(pDevice, " [D3D]");
+		AddItem(pDevice, " Crosshair", crosshair, opt_OnOff, 1);
+		AddItem(pDevice, " Wallhack", wallhack, opt_OnOff, 1);
+		//AddItem(pDevice, " Chams", chams, opt_Chams, 3);
+		//AddItem(pDevice, " Items", items, opt_Items, 2);
+		//AddItem(pDevice, " CacheGlow", cacheglow, opt_onetwo, 2);
+		AddItem(pDevice, " Aimbot", aimbot, opt_Aimbot, 2);
+		AddItem(pDevice, " Aimkey", aimkey, opt_Keys, 8);
+		AddItem(pDevice, " Aimsens", aimsens, opt_Sensitivity, 8);
+		AddItem(pDevice, " Aimheight", aimheight, opt_Aimheight, 6);
+		//AddItem(pDevice, " AimCheckEspFov", aimcheckespfov, opt_OnOff, 1);
+		AddItem(pDevice, " Esp", esp, opt_Esp, 2);
+		AddItem(pDevice, " Autoshoot", autoshoot, opt_Autoshoot, 2);
+
+		if (MenuSelection >= Current)
+			MenuSelection = 1;
+
+		if (MenuSelection < 1)
+			MenuSelection = Current;
+	}
+}
+
+//==========================================================================================================================
+
 // crosshair
 HRESULT DoubleLine(LPDIRECT3DDEVICE9 Device, FLOAT x, FLOAT y, FLOAT x2, FLOAT y2, DWORD Color)
 {
@@ -599,326 +813,3 @@ HRESULT GenerateShader(IDirect3DDevice9 *pD3Ddev, IDirect3DPixelShader9 **pShade
 }
 
 //=====================================================================================================================
-
-//draw shader (may not work in all games)
-IDirect3DPixelShader9 *ellipse = NULL;
-
-DWORD deffault_color8[] = { 0xffffffff, 0xffffffff, 0xffffffff, 0xffffffff, 0xffffffff, 0xffffffff, 0xffffffff, 0xffffffff };
-struct VERTEX
-{
-	float x, y, z, rhw;
-	DWORD color;
-	float tu, tv;
-};
-DWORD FVF = D3DFVF_XYZRHW | D3DFVF_TEX1 | D3DFVF_DIFFUSE;
-
-int DX9CreateEllipseShader(LPDIRECT3DDEVICE9 Device)
-{
-	char vers[100];
-	char *strshader = "\
-					  float4 radius: register(c0);\
-					  sampler mytexture;\
-					  struct VS_OUTPUT\
-					  {\
-					  float4 Pos : SV_POSITION;\
-					  float4 Color : COLOR;\
-					  float2 TexCoord : TEXCOORD;\
-					  };\
-					  float4 PS(VS_OUTPUT input) : SV_TARGET\
-					  {\
-					  if( ( (input.TexCoord[0]-0.5)*(input.TexCoord[0]-0.5) + (input.TexCoord[1]-0.5)*(input.TexCoord[1]-0.5) <= 0.5*0.5) &&\
-					  ( (input.TexCoord[0]-0.5)*(input.TexCoord[0]-0.5) + (input.TexCoord[1]-0.5)*(input.TexCoord[1]-0.5) >= radius[0]*radius[0]) )\
-					  return input.Color;\
-					  else return float4(0,0,0,0);\
-					  };";
-
-	D3DCAPS9 caps;
-	Device->GetDeviceCaps(&caps);
-	UINT V1 = D3DSHADER_VERSION_MAJOR(caps.PixelShaderVersion);
-	UINT V2 = D3DSHADER_VERSION_MINOR(caps.PixelShaderVersion);
-	sprintf_s(vers, "ps_%d_%d", V1, V2);
-	//sprintf(vers, "ps_%d_%d", V1, V2);
-	LPD3DXBUFFER pshader;
-	D3DXCompileShader(strshader, strlen(strshader), 0, 0, "PS", vers, 0, &pshader, 0, 0);
-	if (pshader == NULL)
-	{
-		//MessageBoxA(0, "pshader == NULL", 0, 0);
-		return 1;
-	}
-	Device->CreatePixelShader((DWORD*)pshader->GetBufferPointer(), (IDirect3DPixelShader9**)&ellipse);
-	if (!ellipse)
-	{
-		//MessageBoxA(0, "ellipseshader == NULL", 0, 0);
-		return 2;
-	}
-
-	memset(strshader, 0, strlen(strshader));
-	pshader->Release();
-	return 0;
-}
-
-//IDirect3DVertexBuffer9 *vb = 0;
-//IDirect3DIndexBuffer9 *ib = 0;
-int DX9DrawEllipse(LPDIRECT3DDEVICE9 Device, float x, float y, float w, float h, float linew, DWORD *color)
-{
-	if (!Device)return 1;
-	static IDirect3DVertexBuffer9 *vb = 0;
-	static IDirect3DIndexBuffer9 *ib = 0;
-	static IDirect3DSurface9 *surface = 0;
-	static IDirect3DTexture9 *pstexture = 0;
-
-	//Device->CreateVertexBuffer(sizeof(VERTEX) * 4, D3DUSAGE_WRITEONLY, FVF, D3DPOOL_MANAGED, &vb, NULL);
-	Device->CreateVertexBuffer(sizeof(VERTEX) * 4, D3DUSAGE_WRITEONLY, FVF, D3DPOOL_DEFAULT, &vb, NULL);
-	if (!vb) { MessageBoxA(0, "DrawEllipse error vb", 0, 0); return 2; }
-
-	//Device->CreateIndexBuffer((3 * 2) * 2, 0, D3DFMT_INDEX16, D3DPOOL_MANAGED, &ib, NULL);
-	Device->CreateIndexBuffer((3 * 2) * 2, D3DUSAGE_WRITEONLY, D3DFMT_INDEX16, D3DPOOL_DEFAULT, &ib, NULL);
-	if (!ib) { MessageBoxA(0, "DrawEllipse error ib", 0, 0); return 3; }
-
-	if (!color)color = deffault_color8;
-	float tu = 0, tv = 0;
-	float tw = 1.0, th = 1.0;
-	VERTEX v[4] = { { x, y, 0, 1, color[0], tu, tv },{ x + w, y, 0, 1, color[1], tu + tw, tv },{ x + w, y + h, 0, 1, color[2], tu + tw, tv + th },{ x, y + h, 0, 1, color[3], tu, tv + th } };
-	WORD i[2 * 3] = { 0, 1, 2, 2, 3, 0 };
-	void *p;
-	vb->Lock(0, sizeof(v), &p, 0);
-	memcpy(p, v, sizeof(v));
-	vb->Unlock();
-
-	ib->Lock(0, sizeof(i), &p, 0);
-	memcpy(p, i, sizeof(i));
-	ib->Unlock();
-
-	float radius[4] = { 0, w, h, 0 };
-
-	radius[0] = (linew) / w;
-	if (radius[0]>0.5)radius[0] = 0.5;
-	radius[0] = 0.5 - radius[0];
-
-	Device->SetPixelShaderConstantF(0, radius, 1);
-	Device->SetFVF(FVF);
-	Device->SetTexture(0, 0);
-	Device->SetPixelShader((IDirect3DPixelShader9*)ellipse);
-	Device->SetVertexShader(0);
-	Device->SetStreamSource(0, vb, 0, sizeof(VERTEX));
-	Device->SetIndices(ib);
-	Device->DrawIndexedPrimitive(D3DPT_TRIANGLELIST, 0, 0, 4, 0, 2);
-	if (vb != NULL) { vb->Release(); }
-	if (ib != NULL) { ib->Release(); }
-
-	return 0;
-};
-
-//==========================================================================================================================
-
-//draw sprites, pic esp v3.0
-LPD3DXSPRITE lpSprite, lpSprite2, lpSprite3 = NULL;
-LPDIRECT3DTEXTURE9 lpSpriteImage, lpSpriteImage2, lpSpriteImage3 = NULL;
-bool bSpriteCreated, bSpriteCreated2, bSpriteCreated3 = false;
-
-bool CreateOverlaySprite(IDirect3DDevice9* pd3dDevice)
-{
-	HRESULT hr;
-
-	hr = D3DXCreateTextureFromFile(pd3dDevice, GetDirectoryFile("team1.png"), &lpSpriteImage); //png in hack dir
-	if (FAILED(hr))
-	{
-		//Log("D3DXCreateTextureFromFile failed");
-		bSpriteCreated = false;
-		return false;
-	}
-
-	hr = D3DXCreateSprite(pd3dDevice, &lpSprite);
-	if (FAILED(hr))
-	{
-		//Log("D3DXCreateSprite failed");
-		bSpriteCreated = false;
-		return false;
-	}
-
-	bSpriteCreated = true;
-
-	return true;
-}
-
-bool CreateOverlaySprite2(IDirect3DDevice9* pd3dDevice)
-{
-	HRESULT hr;
-
-	hr = D3DXCreateTextureFromFile(pd3dDevice, GetDirectoryFile("team2.png"), &lpSpriteImage2); //png in hack dir
-	if (FAILED(hr))
-	{
-		//Log("D3DXCreateTextureFromFile failed");
-		bSpriteCreated2 = false;
-		return false;
-	}
-
-	hr = D3DXCreateSprite(pd3dDevice, &lpSprite2);
-	if (FAILED(hr))
-	{
-		//Log("D3DXCreateSprite failed");
-		bSpriteCreated2 = false;
-		return false;
-	}
-
-	bSpriteCreated2 = true;
-
-	return true;
-}
-
-bool CreateOverlaySprite3(IDirect3DDevice9* pd3dDevice)
-{
-	HRESULT hr;
-
-	hr = D3DXCreateTextureFromFile(pd3dDevice, GetDirectoryFile("team3.png"), &lpSpriteImage3); //png in hack dir
-	if (FAILED(hr))
-	{
-		//Log("D3DXCreateTextureFromFile failed");
-		bSpriteCreated3 = false;
-		return false;
-	}
-
-	hr = D3DXCreateSprite(pd3dDevice, &lpSprite3);
-	if (FAILED(hr))
-	{
-		//Log("D3DXCreateSprite failed");
-		bSpriteCreated3 = false;
-		return false;
-	}
-
-	bSpriteCreated3 = true;
-
-	return true;
-}
-
-// COM utils
-template<class COMObject>
-void SafeRelease(COMObject*& pRes)
-{
-	IUnknown *unknown = pRes;
-	if (unknown)
-	{
-		unknown->Release();
-	}
-	pRes = NULL;
-}
-
-// This will get called before Device::Clear(). If the device has been reset
-// then all the work surfaces will be created again.
-void PreClear(IDirect3DDevice9* device)
-{
-	if (!bSpriteCreated)
-		CreateOverlaySprite(device);
-
-	if (!bSpriteCreated2)
-		CreateOverlaySprite2(device);
-
-	if (!bSpriteCreated3)
-		CreateOverlaySprite3(device);
-}
-
-// Delete work surfaces when device gets reset
-void DeleteRenderSurfaces()
-{
-	if (lpSprite != NULL)
-	{
-		//Log("SafeRelease(lpSprite)");
-		SafeRelease(lpSprite);
-	}
-
-	if (lpSprite2 != NULL)
-	{
-		//Log("SafeRelease(lpSprite2)");
-		SafeRelease(lpSprite2);
-	}
-
-	if (lpSprite3 != NULL)
-	{
-		//Log("SafeRelease(lpSprite3)");
-		SafeRelease(lpSprite3);
-	}
-
-	bSpriteCreated = false;
-	bSpriteCreated2 = false;
-	bSpriteCreated3 = false;
-}
-
-// This gets called right before the frame is presented on-screen - Device::Present().
-// First, create the display text, FPS and info message, on-screen. Then then call
-// CopySurfaceToTextureBuffer() to downsample the image and copy to shared memory
-void PrePresent(IDirect3DDevice9* Device, int cx, int cy)
-{
-	int textOffsetLeft;
-
-	//draw sprite
-	if (bSpriteCreated)
-	{
-		if (lpSprite != NULL)
-		{
-			D3DXVECTOR3 position;
-			position.x = (float)cx;
-			position.y = (float)cy;
-			position.z = 0.0f;
-
-			textOffsetLeft = (int)position.x; //for later to offset text from image
-
-			lpSprite->Begin(D3DXSPRITE_ALPHABLEND);
-			lpSprite->Draw(lpSpriteImage, NULL, NULL, &position, 0xFFFFFFFF);
-			lpSprite->End();
-		}
-	}
-
-	// draw text
-}
-
-void PrePresent2(IDirect3DDevice9* Device, int cx, int cy)
-{
-	int textOffsetLeft;
-
-	//draw sprite
-	if (bSpriteCreated2)
-	{
-		if (lpSprite2 != NULL)
-		{
-			D3DXVECTOR3 position;
-			position.x = (float)cx;
-			position.y = (float)cy;
-			position.z = 0.0f;
-
-			textOffsetLeft = (int)position.x; //for later to offset text from image
-
-			lpSprite2->Begin(D3DXSPRITE_ALPHABLEND);
-			lpSprite2->Draw(lpSpriteImage2, NULL, NULL, &position, 0xFFFFFFFF);
-			lpSprite2->End();
-		}
-	}
-
-	// draw text
-}
-
-void PrePresent3(IDirect3DDevice9* Device, int cx, int cy)
-{
-	int textOffsetLeft;
-
-	//draw sprite
-	if (bSpriteCreated3)
-	{
-		if (lpSprite3 != NULL)
-		{
-			D3DXVECTOR3 position;
-			position.x = (float)cx;
-			position.y = (float)cy;
-			position.z = 0.0f;
-
-			textOffsetLeft = (int)position.x; //for later to offset text from image
-
-			lpSprite3->Begin(D3DXSPRITE_ALPHABLEND);
-			lpSprite3->Draw(lpSpriteImage3, NULL, NULL, &position, 0xFFFFFFFF);
-			lpSprite3->End();
-		}
-	}
-
-	// draw text
-}
-
-//==========================================================================================================================
