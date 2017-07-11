@@ -196,12 +196,12 @@ HRESULT APIENTRY DrawIndexedPrimitive_hook(IDirect3DDevice9* pDevice, D3DPRIMITI
 	*/
 
 	//esp
-	if (esp == 1 && mStartRegister == 52 && mVector4fCount >= 82 && pSize < 5000)
+	if (mStartRegister == 52 && mVector4fCount >= 82 && pSize < 5000)
 	{
 		AddEsp(pDevice, 1, "Model", White, 1.5f);
 	}
 
-	if (esp == 2 && items > 0 && MOD)
+	if (items > 0 && MOD)
 		AddEsp(pDevice, 2, "MOD", Green, 0.0f);
 	
 	
@@ -480,7 +480,8 @@ HRESULT APIENTRY EndScene_hook(IDirect3DDevice9* pDevice)
 
 
 		//if nearest target to crosshair
-		if ((aimcheckespfov == 0 && BestTarget != -1 && GetAsyncKeyState(Daimkey)) || (aimcheckespfov == 1 && inespfov && BestTarget != -1 && GetAsyncKeyState(Daimkey)))
+		if (BestTarget != -1)
+		//if ((aimcheckespfov == 0 && BestTarget != -1 && GetAsyncKeyState(Daimkey)) || (aimcheckespfov == 1 && inespfov && BestTarget != -1 && GetAsyncKeyState(Daimkey)))
 		{
 			aimOneX = AimInfo[BestTarget].vOutX;
 			aimOneY = AimInfo[BestTarget].vOutY;
@@ -570,7 +571,8 @@ HRESULT APIENTRY EndScene_hook(IDirect3DDevice9* pDevice)
 
 
 		//if nearest target to crosshair
-		if ((aimcheckespfov == 0 && BestTarget != -1 && GetAsyncKeyState(Daimkey))||(aimcheckespfov == 1 && inespfov && BestTarget != -1 && GetAsyncKeyState(Daimkey)))
+		if (BestTarget != -1)
+		//if ((aimcheckespfov == 0 && BestTarget != -1 && GetAsyncKeyState(Daimkey))||(aimcheckespfov == 1 && inespfov && BestTarget != -1 && GetAsyncKeyState(Daimkey)))
 		{
 			aimTwoX = AimInfo2[BestTarget].vOutX;
 			aimTwoY = AimInfo2[BestTarget].vOutY;
@@ -616,17 +618,17 @@ HRESULT APIENTRY EndScene_hook(IDirect3DDevice9* pDevice)
 				DistX /= aimsens;
 				DistY /= aimsens;
 
-			if (bestRealDistance > 0.0f && bestRealDistance <= 2.0f) //0-4
+			if (bestRealDistance > 0.0f && bestRealDistance <= 2.0f && GetAsyncKeyState(Daimkey)) //0-4
 				mouse_event(MOUSEEVENTF_MOVE, (float)DistX, (float)DistY + 29.0f, 0, NULL);
-			else if (bestRealDistance > 2.0f && bestRealDistance <= 4.0f) //4-8
+			else if (bestRealDistance > 2.0f && bestRealDistance <= 4.0f && GetAsyncKeyState(Daimkey)) //4-8
 				mouse_event(MOUSEEVENTF_MOVE, (float)DistX, (float)DistY + 23.0f, 0, NULL);
-			else if (bestRealDistance > 4.0f && bestRealDistance <= 6.0f) //8-12
+			else if (bestRealDistance > 4.0f && bestRealDistance <= 6.0f && GetAsyncKeyState(Daimkey)) //8-12
 				mouse_event(MOUSEEVENTF_MOVE, (float)DistX, (float)DistY + 17.0f, 0, NULL);
-			else if (bestRealDistance > 6.0f && bestRealDistance <= 8.0f) //12-16
+			else if (bestRealDistance > 6.0f && bestRealDistance <= 8.0f && GetAsyncKeyState(Daimkey)) //12-16
 				mouse_event(MOUSEEVENTF_MOVE, (float)DistX, (float)DistY + 11.0f, 0, NULL);
-			else if (bestRealDistance > 8.0f && bestRealDistance <= 10.0f) //16-20
+			else if (bestRealDistance > 8.0f && bestRealDistance <= 10.0f && GetAsyncKeyState(Daimkey)) //16-20
 				mouse_event(MOUSEEVENTF_MOVE, (float)DistX, (float)DistY + 5.0f, 0, NULL);
-			else if (bestRealDistance > 10.0f)
+			else if (bestRealDistance > 10.0f && GetAsyncKeyState(Daimkey))
 				mouse_event(MOUSEEVENTF_MOVE, (float)DistX, (float)DistY - (bestRealDistance*dstmultiplier), 0, NULL); //0.3up, 0.1down
 			//mouse_event(MOUSEEVENTF_MOVE, (int)DistX, (int)DistY, 0, NULL); //would go down is target is far 
 			}
@@ -645,17 +647,17 @@ HRESULT APIENTRY EndScene_hook(IDirect3DDevice9* pDevice)
 				DistX /= aimsens;
 				DistY /= aimsens;
 
-				if (bestRealDistance > 0.0f && bestRealDistance <= 2.0f) //0-4
+				if (bestRealDistance > 0.0f && bestRealDistance <= 2.0f && GetAsyncKeyState(Daimkey)) //0-4
 					mouse_event(MOUSEEVENTF_MOVE, (float)DistX-14.0f, (float)DistY + 29.0f, 0, NULL);
-				else if (bestRealDistance > 2.0f && bestRealDistance <= 4.0f) //4-8
+				else if (bestRealDistance > 2.0f && bestRealDistance <= 4.0f && GetAsyncKeyState(Daimkey)) //4-8
 					mouse_event(MOUSEEVENTF_MOVE, (float)DistX - 14.0f, (float)DistY + 23.0f, 0, NULL);
-				else if (bestRealDistance > 4.0f && bestRealDistance <= 6.0f) //8-12
+				else if (bestRealDistance > 4.0f && bestRealDistance <= 6.0f && GetAsyncKeyState(Daimkey)) //8-12
 					mouse_event(MOUSEEVENTF_MOVE, (float)DistX - 14.0f, (float)DistY + 17.0f, 0, NULL);
-				else if (bestRealDistance > 6.0f && bestRealDistance <= 8.0f) //12-16
+				else if (bestRealDistance > 6.0f && bestRealDistance <= 8.0f && GetAsyncKeyState(Daimkey)) //12-16
 					mouse_event(MOUSEEVENTF_MOVE, (float)DistX - 14.0f, (float)DistY + 11.0f, 0, NULL);
-				else if (bestRealDistance > 8.0f && bestRealDistance <= 10.0f) //16-20
+				else if (bestRealDistance > 8.0f && bestRealDistance <= 10.0f && GetAsyncKeyState(Daimkey)) //16-20
 					mouse_event(MOUSEEVENTF_MOVE, (float)DistX - 14.0f, (float)DistY + 5.0f, 0, NULL);
-				else if (bestRealDistance > 10.0f)
+				else if (bestRealDistance > 10.0f && GetAsyncKeyState(Daimkey))
 					mouse_event(MOUSEEVENTF_MOVE, (float)DistX - 14.0f, (float)DistY - (bestRealDistance*dstmultiplier), 0, NULL); //0.3up, 0.1down
 				//mouse_event(MOUSEEVENTF_MOVE, (int)DistX, (int)DistY, 0, NULL); //would go down is target is far 
 			}
@@ -674,17 +676,17 @@ HRESULT APIENTRY EndScene_hook(IDirect3DDevice9* pDevice)
 					DistX /= aimsens;
 					DistY /= aimsens;
 
-					if (bestRealDistance > 0.0f && bestRealDistance <= 2.0f) //0-4
+					if (bestRealDistance > 0.0f && bestRealDistance <= 2.0f && GetAsyncKeyState(Daimkey)) //0-4
 						mouse_event(MOUSEEVENTF_MOVE, (float)DistX + 14.0f, (float)DistY + 29.0f, 0, NULL);
-					else if (bestRealDistance > 2.0f && bestRealDistance <= 4.0f) //4-8
+					else if (bestRealDistance > 2.0f && bestRealDistance <= 4.0f && GetAsyncKeyState(Daimkey)) //4-8
 						mouse_event(MOUSEEVENTF_MOVE, (float)DistX + 14.0f, (float)DistY + 23.0f, 0, NULL);
-					else if (bestRealDistance > 4.0f && bestRealDistance <= 6.0f) //8-12
+					else if (bestRealDistance > 4.0f && bestRealDistance <= 6.0f && GetAsyncKeyState(Daimkey)) //8-12
 						mouse_event(MOUSEEVENTF_MOVE, (float)DistX + 14.0f, (float)DistY + 17.0f, 0, NULL);
-					else if (bestRealDistance > 6.0f && bestRealDistance <= 8.0f) //12-16
+					else if (bestRealDistance > 6.0f && bestRealDistance <= 8.0f && GetAsyncKeyState(Daimkey)) //12-16
 						mouse_event(MOUSEEVENTF_MOVE, (float)DistX + 14.0f, (float)DistY + 11.0f, 0, NULL);
-					else if (bestRealDistance > 8.0f && bestRealDistance <= 10.0f) //16-20
+					else if (bestRealDistance > 8.0f && bestRealDistance <= 10.0f && GetAsyncKeyState(Daimkey)) //16-20
 						mouse_event(MOUSEEVENTF_MOVE, (float)DistX + 14.0f, (float)DistY + 5.0f, 0, NULL);
-					else if (bestRealDistance > 10.0f)
+					else if (bestRealDistance > 10.0f && GetAsyncKeyState(Daimkey))
 						mouse_event(MOUSEEVENTF_MOVE, (float)DistX + 14.0f, (float)DistY - (bestRealDistance*dstmultiplier), 0, NULL); //0.3up, 0.1down
 						//mouse_event(MOUSEEVENTF_MOVE, (int)DistX, (int)DistY, 0, NULL); //would go down is target is far 
 				}
@@ -709,17 +711,17 @@ HRESULT APIENTRY EndScene_hook(IDirect3DDevice9* pDevice)
 			//if(GetAsyncKeyState(Daimkey) & 0x8000)
 			//if(aimbot == 2)
 			//{
-				if (bestRealDistance > 0.0f && bestRealDistance <= 2.0f) //0-4
+				if (bestRealDistance > 0.0f && bestRealDistance <= 2.0f && GetAsyncKeyState(Daimkey)) //0-4
 					mouse_event(MOUSEEVENTF_MOVE, (float)DistX, (float)DistY + 29.0f, 0, NULL);
-				else if (bestRealDistance > 2.0f && bestRealDistance <= 4.0f) //4-8
+				else if (bestRealDistance > 2.0f && bestRealDistance <= 4.0f && GetAsyncKeyState(Daimkey)) //4-8
 					mouse_event(MOUSEEVENTF_MOVE, (float)DistX, (float)DistY + 23.0f, 0, NULL);
-				else if (bestRealDistance > 4.0f && bestRealDistance <= 6.0f) //8-12
+				else if (bestRealDistance > 4.0f && bestRealDistance <= 6.0f && GetAsyncKeyState(Daimkey)) //8-12
 					mouse_event(MOUSEEVENTF_MOVE, (float)DistX, (float)DistY + 17.0f, 0, NULL);
-				else if (bestRealDistance > 6.0f && bestRealDistance <= 8.0f) //12-16
+				else if (bestRealDistance > 6.0f && bestRealDistance <= 8.0f && GetAsyncKeyState(Daimkey)) //12-16
 					mouse_event(MOUSEEVENTF_MOVE, (float)DistX, (float)DistY + 11.0f, 0, NULL);
-				else if (bestRealDistance > 8.0f && bestRealDistance <= 10.0f) //16-20
+				else if (bestRealDistance > 8.0f && bestRealDistance <= 10.0f && GetAsyncKeyState(Daimkey)) //16-20
 					mouse_event(MOUSEEVENTF_MOVE, (float)DistX, (float)DistY + 5.0f, 0, NULL);
-				else if (bestRealDistance > 10.0f)
+				else if (bestRealDistance > 10.0f && GetAsyncKeyState(Daimkey))
 					mouse_event(MOUSEEVENTF_MOVE, (float)DistX, (float)DistY - (bestRealDistance*dstmultiplier), 0, NULL); //0.3up, 0.1down
 					//mouse_event(MOUSEEVENTF_MOVE, (int)DistX, (int)DistY, 0, NULL); //would go down is target is far 
 			//}
