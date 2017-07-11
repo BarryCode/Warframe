@@ -60,7 +60,7 @@ float bestRealDistance;
 
 //used for logging/cycling through values
 bool logger = false;
-int countnum = 1;
+int countnum = -1;
 
 bool FirstInit = false; //init once
 
@@ -504,10 +504,13 @@ HRESULT DrawRectangle(LPDIRECT3DDEVICE9 Device, FLOAT x, FLOAT y, FLOAT w, FLOAT
 
 VOID DrawBorder(LPDIRECT3DDEVICE9 Device, INT x, INT y, INT w, INT h, INT px, DWORD BorderColor)
 {
-	DrawRectangle(Device, x, (y + h - px), w, px, BorderColor);
-	DrawRectangle(Device, x, y, px, h, BorderColor);
-	DrawRectangle(Device, x, y, w, px, BorderColor);
-	DrawRectangle(Device, (x + w - px), y, px, h, BorderColor);
+	if (x < Viewport.Width && y < Viewport.Height)
+	{
+		DrawRectangle(Device, x, (y + h - px), w, px, BorderColor);
+		DrawRectangle(Device, x, y, px, h, BorderColor);
+		DrawRectangle(Device, x, y, w, px, BorderColor);
+		DrawRectangle(Device, (x + w - px), y, px, h, BorderColor);
+	}
 }
 
 VOID DrawBoxWithBorder(LPDIRECT3DDEVICE9 Device, INT x, INT y, INT w, INT h, DWORD BoxColor, DWORD BorderColor)
@@ -560,24 +563,26 @@ HRESULT DrawString(LPD3DXFONT pFont, INT X, INT Y, DWORD dColor, CONST PCHAR cSt
 {
 	HRESULT hRet;
 
-	CHAR buf[512] = { NULL };
-	va_list ArgumentList;
-	va_start(ArgumentList, cString);
-	_vsnprintf_s(buf, sizeof(buf), sizeof(buf) - strlen(buf), cString, ArgumentList);
-	va_end(ArgumentList);
-
-	RECT rc[2];
-	SetRect(&rc[0], X, Y, X, 0);
-	SetRect(&rc[1], X, Y, X + 50, 50);
-
-	hRet = D3D_OK;
-
-	if (SUCCEEDED(hRet))
+	if(pFont && X < Viewport.Width && Y < Viewport.Height)
 	{
-		pFont->DrawTextA(NULL, buf, -1, &rc[0], DT_NOCLIP, 0xFF000000);
-		hRet = pFont->DrawTextA(NULL, buf, -1, &rc[1], DT_NOCLIP, dColor);
-	}
+		CHAR buf[512] = { NULL };
+		va_list ArgumentList;
+		va_start(ArgumentList, cString);
+		_vsnprintf_s(buf, sizeof(buf), sizeof(buf) - strlen(buf), cString, ArgumentList);
+		va_end(ArgumentList);
 
+		RECT rc[2];
+		SetRect(&rc[0], X, Y, X, 0);
+		SetRect(&rc[1], X, Y, X + 50, 50);
+
+		hRet = D3D_OK;
+
+		if (SUCCEEDED(hRet))
+		{
+			pFont->DrawTextA(NULL, buf, -1, &rc[0], DT_NOCLIP, 0xFF000000);
+			hRet = pFont->DrawTextA(NULL, buf, -1, &rc[1], DT_NOCLIP, dColor);
+		}
+	}
 	return hRet;
 }
 

@@ -166,46 +166,21 @@ HRESULT APIENTRY DrawIndexedPrimitive_hook(IDirect3DDevice9* pDevice, D3DPRIMITI
 {
 	//unfinished
 
-	if(wallhack == 1 && mStartRegister == 52 && mVector4fCount >= 82 && pSize < 5000)
+	if(wallhack == 1 && mStartRegister == 52 && mVector4fCount >= 82 && pSize < 5000 && vSize < 2392)
 	{
 		pDevice->SetRenderState(D3DRS_ZENABLE, FALSE);
 		DrawIndexedPrimitive_orig(pDevice, Type, BaseVertexIndex, MinVertexIndex, NumVertices, startIndex, primCount);
 		pDevice->SetRenderState(D3DRS_ZENABLE, TRUE);
 	}
 
-	/*
-	//wallhack
-	if (MODELS || CACHE_GLOW)
-	{
-		//behind walls (enables wallhack for models, glow, misc items)
-		if ((wallhack == 1) && (MODELS || CACHE_GLOW))
-		{
-			pDevice->SetRenderState(D3DRS_ZENABLE, FALSE);
-			pDevice->SetRenderState(D3DRS_ZFUNC, D3DCMP_NEVER);
-		}
-
-		DrawIndexedPrimitive_orig(pDevice, Type, BaseVertexIndex, MinVertexIndex, NumVertices, startIndex, primCount);
-
-		//in front of walls (disables wallhack for models, glow, misc items)
-		if ((wallhack == 1) && (MODELS || CACHE_GLOW))
-		{
-			pDevice->SetRenderState(D3DRS_ZENABLE, TRUE);
-			pDevice->SetRenderState(D3DRS_ZFUNC, D3DCMP_LESSEQUAL);
-		}
-	}
-	*/
-
 	//esp
-	if (mStartRegister == 52 && mVector4fCount >= 82 && pSize < 5000)
+	if (mStartRegister == 52 && mVector4fCount >= 82 && pSize < 5000 && vSize < 2392)
 	{
 		AddEsp(pDevice, 1, "Model", White, 1.5f);
 	}
-
-	if (items > 0 && MOD)
-		AddEsp(pDevice, 2, "MOD", Green, 0.0f);
 	
 	
-	/*
+	
 	//small bruteforce logger
 	//ALT + CTRL + L toggles logger
 	if (logger)
@@ -217,18 +192,18 @@ HRESULT APIENTRY DrawIndexedPrimitive_hook(IDirect3DDevice9* pDevice, D3DPRIMITI
 			countnum++;
 		if ((GetAsyncKeyState(VK_MENU)) && (GetAsyncKeyState('9') & 1)) //reset, set to -1
 			countnum = -1;
-		if (countnum == NumVertices|| countnum == pSize/10)
+		if (countnum == NumVertices|| countnum == pSize/100)
 			if (pSize > 44 && GetAsyncKeyState('I') & 1) //press I to log to log.txt
 				Log("Stride == %d && NumVertices == %d && primCount == %d && vSize == %d && pSize == %d && decl->Type == %d && numElements == %d && mStartRegister == %d && mVector4fCount == %d && iDesc.Size == %d", Stride, NumVertices, primCount, vSize, pSize, decl->Type, numElements, mStartRegister, mVector4fCount, iDesc.Size);
 		//pDevice->SetRenderState(D3DRS_FILLMODE, D3DFILL_SOLID);
-		if (countnum == NumVertices || countnum == pSize / 10)
+		if (countnum == NumVertices || countnum == pSize / 100)
 		{
 			pDevice->SetTexture(0, NULL);
 			return D3D_OK; //delete texture
 			//pDevice->SetRenderState(D3DRS_FILLMODE, D3DFILL_WIREFRAME);
 		}
 	}
-	*/
+	
 	return DrawIndexedPrimitive_orig(pDevice, Type, BaseVertexIndex, MinVertexIndex, NumVertices, startIndex, primCount);
 }
 
@@ -324,7 +299,6 @@ HRESULT APIENTRY EndScene_hook(IDirect3DDevice9* pDevice)
 
 	if (pFont)
 	{
-		//pDevice->GetViewport(&Viewport);
 		BuildMenu(pDevice);
 	}
 
@@ -341,6 +315,7 @@ HRESULT APIENTRY EndScene_hook(IDirect3DDevice9* pDevice)
 		for (unsigned int i = 0; i < EspInfo.size(); i++)
 		{
 			//esp 1
+			//if (x < Viewport.Width && y < Viewport.Height)
 			if (esp == 1 && EspInfo[i].iTeam == 1 && EspInfo[i].vOutX > 1 && EspInfo[i].vOutY > 1 && EspInfo[i].RealDistance > 3.0f)
 			{
 				//show box
@@ -358,20 +333,6 @@ HRESULT APIENTRY EndScene_hook(IDirect3DDevice9* pDevice)
 
 				//draw real distance
 				DrawString(pFont, (int)EspInfo[i].vOutX - 9, (int)EspInfo[i].vOutY, Green, "%.f", EspInfo[i].RealDistance*2.0f);
-			}
-
-			//item esp
-			if (items == 1 && EspInfo[i].iTeam == 2 && EspInfo[i].vOutX > 1 && EspInfo[i].vOutY > 1)
-				DrawString(pFont, (int)EspInfo[i].vOutX, (int)EspInfo[i].vOutY, EspInfo[i].cColor, EspInfo[i].oName);
-
-			if (items == 2 && EspInfo[i].iTeam == 2 && EspInfo[i].vOutX > 1 && EspInfo[i].vOutY > 1)
-			{
-				//drawpic
-				//PrePresent2(pDevice, (int)EspInfo[i].vOutX - 32, (int)EspInfo[i].vOutY - 20);
-
-				//DWORD col[4] = { 0xffffff00, 0xffffff00, 0xffffff00, 0xffffff00 };//yellow
-				//DX9DrawEllipse(pDevice, (int)EspInfo[i].vOutX - 12, (int)EspInfo[i].vOutY - 10, 25, 25, 6, &EspInfo[i].cColor);
-				//DrawString(pFont, (int)EspInfo[i].vOutX, (int)EspInfo[i].vOutY, EspInfo[i].cColor, EspInfo[i].oName);
 			}
 
 			//aimfov
@@ -396,15 +357,6 @@ HRESULT APIENTRY EndScene_hook(IDirect3DDevice9* pDevice)
 		//if nearest target to crosshair
 		if (BestTarget != -1)
 		{
-			//reduce aimdown while reloading
-			float radius = 25 * (ScreenCenterX / 100);
-			if (EspInfo[BestTarget].vOutX >= ScreenCenterX - radius && EspInfo[BestTarget].vOutX <= ScreenCenterX + radius && EspInfo[BestTarget].vOutY >= ScreenCenterY - radius && EspInfo[BestTarget].vOutY <= ScreenCenterY + radius)
-				inespfov = true;
-			else inespfov = false;
-			//if (inespfov)
-				//DrawString(pFont, 210, 210, Green, "inespfov");
-			//else if (!inespfov) DrawString(pFont, 200, 200, Red, "NOT inespfov");
-
 			//hp bar distance is always 5.3 thats why we need esp distance to bodies instead
 			bestRealDistance = EspInfo[BestTarget].RealDistance;
 
@@ -440,8 +392,6 @@ HRESULT APIENTRY EndScene_hook(IDirect3DDevice9* pDevice)
 	if (aimkey == 7) Daimkey = 0x58; //X
 	if (aimkey == 8) Daimkey = 0x43; //C
 
-	//if(hpbaronscreen)
-		//DrawString(pFont, (int)100, (int)100, Green, "hpbaronscreen");
 
 	//big mess inc
 	//aimbot1
@@ -481,58 +431,14 @@ HRESULT APIENTRY EndScene_hook(IDirect3DDevice9* pDevice)
 
 		//if nearest target to crosshair
 		if (BestTarget != -1)
-		//if ((aimcheckespfov == 0 && BestTarget != -1 && GetAsyncKeyState(Daimkey)) || (aimcheckespfov == 1 && inespfov && BestTarget != -1 && GetAsyncKeyState(Daimkey)))
 		{
 			aimOneX = AimInfo[BestTarget].vOutX;
 			aimOneY = AimInfo[BestTarget].vOutY;
 
 			DrawString(pFont, 200, 200, White, "%.2f", aimOneX);
 			DrawString(pFont, 200, 220, White, "%.2f", aimOneY);
-			/*
-			double DistX = AimInfo[BestTarget].vOutX - ScreenCenterX;
-			double DistY = AimInfo[BestTarget].vOutY - ScreenCenterY;
-
-			DistX /= aimsens;
-			DistY /= aimsens;
-
-			float dstmultiplier;
-			if (aimkey == 2 && GetAsyncKeyState(VK_RBUTTON) & 0x8000)
-				dstmultiplier = 0.26f;
-			else dstmultiplier = 0.20f;
-
-			//DrawString(pFont, 200, 200, White, "%f", dstmultiplier);
-
-			//aim
-			//if(GetAsyncKeyState(Daimkey) & 0x8000)
-			//if(aimbot == 2)
-			//{
-			if (bestRealDistance > 0.0f && bestRealDistance <= 2.0f) //0-4
-				mouse_event(MOUSEEVENTF_MOVE, (float)DistX, (float)DistY + 29.0f, 0, NULL);
-			else if (bestRealDistance > 2.0f && bestRealDistance <= 4.0f) //4-8
-				mouse_event(MOUSEEVENTF_MOVE, (float)DistX, (float)DistY + 23.0f, 0, NULL);
-			else if (bestRealDistance > 4.0f && bestRealDistance <= 6.0f) //8-12
-				mouse_event(MOUSEEVENTF_MOVE, (float)DistX, (float)DistY + 17.0f, 0, NULL);
-			else if (bestRealDistance > 6.0f && bestRealDistance <= 8.0f) //12-16
-				mouse_event(MOUSEEVENTF_MOVE, (float)DistX, (float)DistY + 11.0f, 0, NULL);
-			else if (bestRealDistance > 8.0f && bestRealDistance <= 10.0f) //16-20
-				mouse_event(MOUSEEVENTF_MOVE, (float)DistX, (float)DistY + 5.0f, 0, NULL);
-			else if (bestRealDistance > 10.0f)
-				mouse_event(MOUSEEVENTF_MOVE, (float)DistX, (float)DistY - (bestRealDistance*dstmultiplier), 0, NULL); //0.3up, 0.1down
-			//mouse_event(MOUSEEVENTF_MOVE, (int)DistX, (int)DistY, 0, NULL); //would go down is target is far 
-			//}
-
-			//autoshoot on
-			if ((autoshoot == 1) || (autoshoot == 2 && (GetAsyncKeyState(Daimkey) & 0x8000)))
-			{
-				if (!IsPressed)
-				{
-					mouse_event(MOUSEEVENTF_LEFTDOWN, 0, 0, 0, 0);
-					IsPressed = true;
-				}
-			}
-			*/
+			
 		}
-		//hpbaronscreen = false;
 	}
 	AimInfo.clear();
 
@@ -572,7 +478,6 @@ HRESULT APIENTRY EndScene_hook(IDirect3DDevice9* pDevice)
 
 		//if nearest target to crosshair
 		if (BestTarget != -1)
-		//if ((aimcheckespfov == 0 && BestTarget != -1 && GetAsyncKeyState(Daimkey))||(aimcheckespfov == 1 && inespfov && BestTarget != -1 && GetAsyncKeyState(Daimkey)))
 		{
 			aimTwoX = AimInfo2[BestTarget].vOutX;
 			aimTwoY = AimInfo2[BestTarget].vOutY;
@@ -607,7 +512,6 @@ HRESULT APIENTRY EndScene_hook(IDirect3DDevice9* pDevice)
 			//DrawString(pFont, 200, 200, White, "%f", dstmultiplier);
 
 			//aim
-			//if(GetAsyncKeyState(Daimkey) & 0x8000)
 			//if(aimbot == 2)
 			if (aimBestX != -1 && aimBestY != -1)
 			{
@@ -617,20 +521,21 @@ HRESULT APIENTRY EndScene_hook(IDirect3DDevice9* pDevice)
 
 				DistX /= aimsens;
 				DistY /= aimsens;
-
-			if (bestRealDistance > 0.0f && bestRealDistance <= 2.0f && GetAsyncKeyState(Daimkey)) //0-4
+			
+			//we get bestRealDistance from esp
+			if (bestRealDistance > 0.0f && bestRealDistance <= 2.0f && GetAsyncKeyState(Daimkey)) 
 				mouse_event(MOUSEEVENTF_MOVE, (float)DistX, (float)DistY + 29.0f, 0, NULL);
-			else if (bestRealDistance > 2.0f && bestRealDistance <= 4.0f && GetAsyncKeyState(Daimkey)) //4-8
+			else if (bestRealDistance > 2.0f && bestRealDistance <= 4.0f && GetAsyncKeyState(Daimkey)) 
 				mouse_event(MOUSEEVENTF_MOVE, (float)DistX, (float)DistY + 23.0f, 0, NULL);
-			else if (bestRealDistance > 4.0f && bestRealDistance <= 6.0f && GetAsyncKeyState(Daimkey)) //8-12
+			else if (bestRealDistance > 4.0f && bestRealDistance <= 6.0f && GetAsyncKeyState(Daimkey)) 
 				mouse_event(MOUSEEVENTF_MOVE, (float)DistX, (float)DistY + 17.0f, 0, NULL);
-			else if (bestRealDistance > 6.0f && bestRealDistance <= 8.0f && GetAsyncKeyState(Daimkey)) //12-16
+			else if (bestRealDistance > 6.0f && bestRealDistance <= 8.0f && GetAsyncKeyState(Daimkey)) 
 				mouse_event(MOUSEEVENTF_MOVE, (float)DistX, (float)DistY + 11.0f, 0, NULL);
-			else if (bestRealDistance > 8.0f && bestRealDistance <= 10.0f && GetAsyncKeyState(Daimkey)) //16-20
+			else if (bestRealDistance > 8.0f && bestRealDistance <= 10.0f && GetAsyncKeyState(Daimkey)) 
 				mouse_event(MOUSEEVENTF_MOVE, (float)DistX, (float)DistY + 5.0f, 0, NULL);
 			else if (bestRealDistance > 10.0f && GetAsyncKeyState(Daimkey))
-				mouse_event(MOUSEEVENTF_MOVE, (float)DistX, (float)DistY - (bestRealDistance*dstmultiplier), 0, NULL); //0.3up, 0.1down
-			//mouse_event(MOUSEEVENTF_MOVE, (int)DistX, (int)DistY, 0, NULL); //would go down is target is far 
+				mouse_event(MOUSEEVENTF_MOVE, (float)DistX, (float)DistY - (bestRealDistance*dstmultiplier), 0, NULL); //0.3up, 0.1down		
+				//mouse_event(MOUSEEVENTF_MOVE, (int)DistX, (int)DistY, 0, NULL); //would go down is target is far 
 			}
 
 			//aimOneX = 902
@@ -638,8 +543,7 @@ HRESULT APIENTRY EndScene_hook(IDirect3DDevice9* pDevice)
 			if(aimOneX < aimTwoX)//if we are aiming at the wrong right side
 			if ((aimBestX == -1 && aimBestY == -1) && (aimOneX >= aimTwoX - 62.0f && aimOneX <= aimTwoX + 62.0f && aimOneY >= aimTwoY - 62.0f && aimOneY <= aimTwoY + 62.0f))
 			{
-				//todo move alternative aim <- to the left
-				DrawString(pFont, 200, 320, Yellow, "1alternative aim1");
+				DrawString(pFont, 200, 320, Yellow, "<-1alternative aim1");
 
 				double DistX = aimTwoX - ScreenCenterX;
 				double DistY = aimTwoY - ScreenCenterY;
@@ -668,7 +572,7 @@ HRESULT APIENTRY EndScene_hook(IDirect3DDevice9* pDevice)
 				if ((aimBestX == -1 && aimBestY == -1) && (aimOneX >= aimTwoX - 62.0f && aimOneX <= aimTwoX + 62.0f && aimOneY >= aimTwoY - 62.0f && aimOneY <= aimTwoY + 62.0f))
 				{
 					//
-					DrawString(pFont, 200, 320, Yellow, "2alternative aim2");
+					DrawString(pFont, 200, 320, Yellow, "2alternative aim2->");
 
 					double DistX = aimTwoX - ScreenCenterX;
 					double DistY = aimTwoY - ScreenCenterY;
@@ -725,9 +629,11 @@ HRESULT APIENTRY EndScene_hook(IDirect3DDevice9* pDevice)
 					mouse_event(MOUSEEVENTF_MOVE, (float)DistX, (float)DistY - (bestRealDistance*dstmultiplier), 0, NULL); //0.3up, 0.1down
 					//mouse_event(MOUSEEVENTF_MOVE, (int)DistX, (int)DistY, 0, NULL); //would go down is target is far 
 			//}
-			/*
+			
+			}
+
 			//autoshoot on
-			if ( (autoshoot == 1)||(autoshoot == 2 && (GetAsyncKeyState(Daimkey) & 0x8000)) )
+			if ((autoshoot == 1) || (autoshoot == 2 && (GetAsyncKeyState(Daimkey) & 0x8000)))
 			{
 				if (!IsPressed)
 				{
@@ -735,19 +641,11 @@ HRESULT APIENTRY EndScene_hook(IDirect3DDevice9* pDevice)
 					IsPressed = true;
 				}
 			}
-			*/
-			}
 			
 		}
-		//hpbaronscreen = false;
 	}
 	AimInfo2.clear();
 
-	//aimBestX = (aimOneX + aimTwoX) / 2.0f;
-	//aimBestY = (aimOneY + aimTwoY) / 2.0f;
-
-	//DrawString(pFont, 200, 280, Red, "%.2f", aimBestX);
-	//DrawString(pFont, 200, 300, Red, "%.2f", aimBestY);
 
 	if (autoshoot > 0 && IsPressed)
 	{
@@ -907,6 +805,7 @@ DWORD WINAPI DirectXInit(__in  LPVOID lpParameter)
 	DrawPrimitive_orig = (DrawPrimitive)dVtable[81];
 	Reset_orig = (Reset)dVtable[16];
 	SetStreamSource_orig = (SetStreamSource)dVtable[100];
+	//SetIndices_orig = (SetIndices)dVtable[104];
 	SetVertexDeclaration_orig = (SetVertexDeclaration)dVtable[87];
 	SetVertexShader_orig = (SetVertexShader)dVtable[92];
 	SetPixelShader_orig = (SetPixelShader)dVtable[107];
@@ -927,8 +826,8 @@ DWORD WINAPI DirectXInit(__in  LPVOID lpParameter)
 	if (MH_EnableHook((DWORD_PTR*)dVtable[16]) != MH_OK) { return 1; }
 	if (MH_CreateHook((DWORD_PTR*)dVtable[100], &SetStreamSource_hook, reinterpret_cast<void**>(&SetStreamSource_orig)) != MH_OK) { return 1; }
 	if (MH_EnableHook((DWORD_PTR*)dVtable[100]) != MH_OK) { return 1; }
-	if (MH_CreateHook((DWORD_PTR*)dVtable[104], &SetIndices_hook, reinterpret_cast<void**>(&SetIndices_orig)) != MH_OK) { return 1; }
-	if (MH_EnableHook((DWORD_PTR*)dVtable[104]) != MH_OK) { return 1; }
+	//if (MH_CreateHook((DWORD_PTR*)dVtable[104], &SetIndices_hook, reinterpret_cast<void**>(&SetIndices_orig)) != MH_OK) { return 1; }
+	//if (MH_EnableHook((DWORD_PTR*)dVtable[104]) != MH_OK) { return 1; }
 	if (MH_CreateHook((DWORD_PTR*)dVtable[87], &SetVertexDeclaration_hook, reinterpret_cast<void**>(&SetVertexDeclaration_orig)) != MH_OK) { return 1; }
 	if (MH_EnableHook((DWORD_PTR*)dVtable[87]) != MH_OK) { return 1; }
 	if (MH_CreateHook((DWORD_PTR*)dVtable[92], &SetVertexShader_hook, reinterpret_cast<void**>(&SetVertexShader_orig)) != MH_OK) { return 1; }
