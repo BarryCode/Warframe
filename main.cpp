@@ -370,6 +370,15 @@ HRESULT APIENTRY EndScene_hook(IDirect3DDevice9* pDevice)
 		//if nearest target to crosshair
 		if (BestTarget != -1)
 		{
+			//reduce aimdown while reloading
+			float radius = 25 * (ScreenCenterX / 100);
+			if (EspInfo[BestTarget].vOutX >= ScreenCenterX - radius && EspInfo[BestTarget].vOutX <= ScreenCenterX + radius && EspInfo[BestTarget].vOutY >= ScreenCenterY - radius && EspInfo[BestTarget].vOutY <= ScreenCenterY + radius)
+				inespfov = true;
+			else inespfov = false;
+			if (inespfov)
+			DrawString(pFont, 210, 210, Green, "inespfov");
+			else if (!inespfov) DrawString(pFont, 200, 200, Red, "NOT inespfov");
+
 			//hp bar distance is always 5.3 thats why we need esp distance to bodies instead
 			bestRealDistance = EspInfo[BestTarget].RealDistance;
 
@@ -537,7 +546,7 @@ HRESULT APIENTRY EndScene_hook(IDirect3DDevice9* pDevice)
 
 
 		//if nearest target to crosshair
-		if (BestTarget != -1)
+		if ((aimcheckespfov == 0 && BestTarget != -1) || (aimcheckespfov == 1 && inespfov && BestTarget != -1))
 		{
 			//DrawString(pFont, AimInfo2[BestTarget].vOutX, AimInfo2[BestTarget].vOutY, Green, "lvl");
 

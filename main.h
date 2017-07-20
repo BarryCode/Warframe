@@ -116,7 +116,7 @@ int cacheglow = 0;				//glow around caches
 int aimbot = 1;					//aimbot
 int aimsens = 3;				//aim sens
 int aimheight = 4;				//aim height
-int aimcheckespfov = 0;			//reduce aimdown while reloading
+int aimcheckespfov = 1;			//reduce aimdown while reloading
 int esp = 0;					//esp
 int autoshoot = 2;				//autoshoot
 
