@@ -73,7 +73,7 @@ float ScreenCenterX;
 float ScreenCenterY;
 
 //aim
-float aimOneX, aimOneY, aimTwoX, aimTwoY, aimBestX, aimBestY;
+float lvlsymX, lvlsymY, hpbarX, hpbarY;
 
 IDirect3DIndexBuffer9* ppIndexData;
 D3DINDEXBUFFER_DESC iDesc;
@@ -230,7 +230,7 @@ void AddAim(LPDIRECT3DDEVICE9 Device, int iTeam)
 	Device->GetVertexShaderConstantF(0, matrix, 4);
 	
 	input.x = 0.0f;
-	input.y = 0.0f;
+	input.y = 1200.0f;
 	input.z = 0.0f;
 	input.w = 1.0f;
 
@@ -241,9 +241,9 @@ void AddAim(LPDIRECT3DDEVICE9 Device, int iTeam)
 		//input.x = 1000.0f; //move left to aim at center of hp bar in pvp
 
 	if (aimkey == 2 && GetAsyncKeyState(VK_RBUTTON) & 0x8000)
-		input.y += 700.0f + ((float)aimheight * 80.0f);
+		input.y += 1.0f + ((float)aimheight * 80.0f);
 	else
-		input.y += 400.0f + ((float)aimheight * 40.0f);
+		input.y += 1.0f + ((float)aimheight * 40.0f);
 
 
 	D3DXMatrixTranspose(&m1, &matrix);
@@ -284,21 +284,16 @@ void AddAim2(LPDIRECT3DDEVICE9 Device, int iTeam)
 	D3DXVECTOR4 position, input;
 	Device->GetVertexShaderConstantF(0, matrix, 4);
 
-	input.x = 1000.0f;
-	input.y = 877.0f;
+	input.x = 0.0f;
+	input.y = 522.0f;
 	input.z = 0.0f;
 	input.w = 1.0f;
 
-	//adjust aimheight
-	//if (aimbot == 1)
-		//input.x = 0.0f; //do not move left if aiming at lvl bar in pve
-	//else if (aimbot == 2)
-		//input.x = 1000.0f; //move left to aim at center of hp bar in pvp
 
 	if (aimkey == 2 && GetAsyncKeyState(VK_RBUTTON) & 0x8000)
-		input.y += 700.0f + ((float)aimheight * 80.0f);
+		input.y += 1.0f + ((float)aimheight * 80.0f);
 	else
-		input.y += 400.0f + ((float)aimheight * 40.0f);
+		input.y += 1.0f + ((float)aimheight * 40.0f);
 
 
 	D3DXMatrixTranspose(&m1, &matrix);
@@ -504,7 +499,7 @@ HRESULT DrawRectangle(LPDIRECT3DDEVICE9 Device, FLOAT x, FLOAT y, FLOAT w, FLOAT
 
 VOID DrawBorder(LPDIRECT3DDEVICE9 Device, INT x, INT y, INT w, INT h, INT px, DWORD BorderColor)
 {
-	if (x < Viewport.Width && y < Viewport.Height)
+	if (x > 1 && x < Viewport.Width && y > 1 && y < Viewport.Height)
 	{
 		DrawRectangle(Device, x, (y + h - px), w, px, BorderColor);
 		DrawRectangle(Device, x, y, px, h, BorderColor);
