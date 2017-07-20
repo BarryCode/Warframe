@@ -412,7 +412,6 @@ HRESULT APIENTRY EndScene_hook(IDirect3DDevice9* pDevice)
 	{
 		UINT BestTarget = -1;
 		DOUBLE fClosestPos = 99999;
-		//hpbarX = 0.0f;
 
 		for (unsigned int i = 0; i < AimInfo.size(); i++)
 		{
@@ -432,7 +431,7 @@ HRESULT APIENTRY EndScene_hook(IDirect3DDevice9* pDevice)
 			if (AimInfo[i].vOutX >= ScreenCenterX - radiusx && AimInfo[i].vOutX <= ScreenCenterX + radiusx && AimInfo[i].vOutY >= ScreenCenterY - radiusy && AimInfo[i].vOutY <= ScreenCenterY + radiusy)
 
 				//get closest/nearest target to crosshair
-				if (AimInfo[i].CrosshairDistance < fClosestPos)
+				if (AimInfo[i].CrosshairDistance < fClosestPos && aimz > 0.0f)
 				{
 					fClosestPos = AimInfo[i].CrosshairDistance;
 					BestTarget = i;
@@ -447,6 +446,7 @@ HRESULT APIENTRY EndScene_hook(IDirect3DDevice9* pDevice)
 			hpbarY = AimInfo[BestTarget].vOutY;
 			defaulthpbarX = AimInfo[BestTarget].vOutX;
 			defaulthpbarY = AimInfo[BestTarget].vOutY;
+			DrawString(pFont, 200, 300, White, "%.2f", aimz);
 
 			//DrawString(pFont, 200, 200, White, "%.2f", defaulthpbarX);
 			//DrawString(pFont, 200, 220, White, "%.2f", defaulthpbarY);
@@ -463,7 +463,8 @@ HRESULT APIENTRY EndScene_hook(IDirect3DDevice9* pDevice)
 				hpbarX = (AimInfo[BestTarget].vOutX + 56.0f);
 			}
 
-			DrawString(pFont, hpbarX, AimInfo[BestTarget].vOutY, Green, "lvl");
+			//DrawString(pFont, hpbarX, AimInfo[BestTarget].vOutY, Green, "lvl");
+			//DrawString(pFont, 200, 200, White, "%.2f", aimz);
 
 
 			double DistX = hpbarX - ScreenCenterX;
@@ -489,6 +490,8 @@ HRESULT APIENTRY EndScene_hook(IDirect3DDevice9* pDevice)
 		}
 		else
 		{
+			aimz = 0.0f;
+			//aimzz = 0.0f;
 			hpbarX = 0.0f;
 			hpbarY = 0.0f;
 			defaulthpbarX = 0.0f;
@@ -525,7 +528,7 @@ HRESULT APIENTRY EndScene_hook(IDirect3DDevice9* pDevice)
 			if (AimInfo2[i].vOutX >= ScreenCenterX - radiusx && AimInfo2[i].vOutX <= ScreenCenterX + radiusx && AimInfo2[i].vOutY >= ScreenCenterY - radiusy && AimInfo2[i].vOutY <= ScreenCenterY + radiusy)
 
 				//get closest/nearest target to crosshair
-				if (AimInfo2[i].CrosshairDistance < fClosestPos)
+				if (AimInfo2[i].CrosshairDistance < fClosestPos && aimzz > 0.0f)
 				{
 					fClosestPos = AimInfo2[i].CrosshairDistance;
 					BestTarget = i;
@@ -536,7 +539,7 @@ HRESULT APIENTRY EndScene_hook(IDirect3DDevice9* pDevice)
 		//if nearest target to crosshair
 		if (BestTarget != -1)
 		{
-			DrawString(pFont, AimInfo2[BestTarget].vOutX, AimInfo2[BestTarget].vOutY, Green, "lvl");
+			//DrawString(pFont, AimInfo2[BestTarget].vOutX, AimInfo2[BestTarget].vOutY, Green, "lvl");
 
 			lvlsymX = AimInfo2[BestTarget].vOutX;
 			lvlsymY = AimInfo2[BestTarget].vOutY;
@@ -544,8 +547,9 @@ HRESULT APIENTRY EndScene_hook(IDirect3DDevice9* pDevice)
 			//DrawString(pFont, 200, 240, Green, "%.2f", lvlsymX);
 			//DrawString(pFont, 200, 260, Green, "%.2f", lvlsymY);
 
-			DrawString(pFont, 200, 240, Green, "%.2f", defaulthpbarX-lvlsymX);
-			DrawString(pFont, 200, 260, Green, "%.2f", defaulthpbarY-lvlsymY);
+			//DrawString(pFont, 200, 240, Green, "%.2f", defaulthpbarX-lvlsymX);
+			//DrawString(pFont, 200, 260, Green, "%.2f", defaulthpbarY-lvlsymY);
+			DrawString(pFont, 200, 320, White, "%.2f", aimzz);
 
 			double DistX = AimInfo2[BestTarget].vOutX - ScreenCenterX;
 			double DistY = AimInfo2[BestTarget].vOutY - ScreenCenterY;
@@ -565,14 +569,26 @@ HRESULT APIENTRY EndScene_hook(IDirect3DDevice9* pDevice)
 			//if(hpbarX > 0 && hpbarY > 0)
 			//if (hpbarX > 0 && defaulthpbarX < hpbarX)
 			//if (hpbarX > 0 && defaulthpbarY == hpbarY)
-			if (GetAsyncKeyState(Daimkey) & 0x8000)
+			//if (GetAsyncKeyState(Daimkey) & 0x8000)
 			//if (hpbarX > 0 && hpbarY > 0 && defaulthpbarY == hpbarY && defaulthpbarX == hpbarX+56.0f)
 			//if only green on screen dont aim
 			//if (hpbarX > 0 && hpbarY > 0 && defaulthpbarY >= hpbarY && defaulthpbarX >= hpbarX-60.0f||defaulthpbarX<= hpbarX-60.0f)
-			if (hpbarX > 0 && hpbarY > 0 && defaulthpbarY - lvlsymY > 0.0f && defaulthpbarY - lvlsymY < 50.0f) //&& defaulthpbarX - lvlsymX <= -56.0f || defaulthpbarX - lvlsymX <= 56.0f
-			//if (GetAsyncKeyState(Daimkey) & 0x8000)
+			//if (hpbarX > 0 && hpbarY > 0 && defaulthpbarY - lvlsymY > 0.0f && defaulthpbarY - lvlsymY < 100.0f) //&& defaulthpbarX - lvlsymX <= -56.0f || defaulthpbarX - lvlsymX <= 56.0f
+			//if (defaulthpbarX - lvlsymX >= -100.0f && defaulthpbarY - lvlsymY <= 200.0f && aimz > 0.0f && aimzz > 0.0f)
+			if ((defaulthpbarX - lvlsymX > -60.0f && defaulthpbarX - lvlsymX <= 60.0f) && (defaulthpbarY - lvlsymY > -60.0f && defaulthpbarY - lvlsymY <= 60.0f))
+			{
+				DrawString(pFont, 200, 240, Green, "%.2f", defaulthpbarX - lvlsymX);
+				DrawString(pFont, 200, 260, Green, "%.2f", defaulthpbarY - lvlsymY);
+				//DrawString(pFont, AimInfo2[BestTarget].vOutX, AimInfo2[BestTarget].vOutY, Green, "T");
+				if (GetAsyncKeyState(Daimkey) & 0x8000)
 				mouse_event(MOUSEEVENTF_MOVE, (int)DistX, (int)DistY, 0, NULL); //would go down is target is far 
+			}
 
+		}
+		else
+		{
+			//aimz = 0.0f;
+			aimzz = 0.0f;
 		}
 	}
 	AimInfo2.clear();

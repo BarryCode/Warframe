@@ -223,7 +223,7 @@ struct AimInfo_t
 	float CrosshairDistance;
 };
 std::vector<AimInfo_t>AimInfo;
-
+float aimz = 0.0f;
 void AddAim(LPDIRECT3DDEVICE9 Device, int iTeam)
 {
 	float aimx, aimy; //aimz;
@@ -256,7 +256,7 @@ void AddAim(LPDIRECT3DDEVICE9 Device, int iTeam)
 	position.z = input.x * matrix._13 + input.y * matrix._23 + input.z * matrix._33 + matrix._43;
 	position.w = input.x * matrix._14 + input.y * matrix._24 + input.z * matrix._34 + matrix._44;
 
-	//aimz = Viewport.MinZ + position.z * (Viewport.MaxZ - Viewport.MinZ); //real distance
+	aimz = Viewport.MinZ + position.z * (Viewport.MaxZ - Viewport.MinZ); //real distance
 
 	if (matrix._44 > 1.0f)
 	{
@@ -278,7 +278,7 @@ struct AimInfo2_t
 	float CrosshairDistance;
 };
 std::vector<AimInfo2_t>AimInfo2;
-
+float aimzz = 0.0f;
 void AddAim2(LPDIRECT3DDEVICE9 Device, int iTeam)
 {
 	float aimx, aimy; //aimz;
@@ -306,7 +306,7 @@ void AddAim2(LPDIRECT3DDEVICE9 Device, int iTeam)
 	position.z = input.x * matrix._13 + input.y * matrix._23 + input.z * matrix._33 + matrix._43;
 	position.w = input.x * matrix._14 + input.y * matrix._24 + input.z * matrix._34 + matrix._44;
 
-	//aimz = Viewport.MinZ + position.z * (Viewport.MaxZ - Viewport.MinZ); //real distance
+	aimzz = Viewport.MinZ + position.z * (Viewport.MaxZ - Viewport.MinZ); //real distance
 
 	if (matrix._44 > 1.0f)
 	{
