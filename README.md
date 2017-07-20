@@ -1,4 +1,4 @@
-# Warframe D3D Source x86 & x64 (unfinished debug version)
+# Warframe D3D Source x86 & x64 (aim test version 0.2)
 
 How to compile:
 - open wfdxhook.vcxproj (not wfdxhook.vcxproj.filters) with Visual Studio Community 2017 (..\Microsoft Visual Studio\2017\Community\Common7\IDE\devenv.exe)
