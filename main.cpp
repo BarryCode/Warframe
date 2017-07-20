@@ -224,7 +224,7 @@ HRESULT APIENTRY DrawPrimitive_hook(IDirect3DDevice9* pDevice, D3DPRIMITIVETYPE 
 	{
 		//pDevice->SetPixelShader(shadRed);
 		if (GetAsyncKeyState(VK_F10) & 1) //press I to log to log.txt
-		Log("Stride == %d && PrimitiveCount == %d && vSize == %d && pSize == %d && decl->Type == %d && numElements == %d && mStartRegister == %d && mVector4fCount == %d && sWidth == %d && sHeight == %d && sFormat == %d && StartVertex == %d && iDesc.Size == %d", Stride, PrimitiveCount, vSize, pSize, decl->Type, numElements, mStartRegister, mVector4fCount, sWidth, sHeight, sFormat, StartVertex, iDesc.Size);
+		Log("Stride == %d && PrimitiveCount == %d && vSize == %d && pSize == %d && decl->Type == %d && numElements == %d && mStartRegister == %d && mVector4fCount == %d && sWidth == %d && sHeight == %d && sFormat == %d && StartVertex == %d && sSampler == %d", Stride, PrimitiveCount, vSize, pSize, decl->Type, numElements, mStartRegister, mVector4fCount, sWidth, sHeight, sFormat, StartVertex, sSampler);
 
 		//worldtoscreen
 		AddAim(pDevice, 1);
@@ -412,7 +412,7 @@ HRESULT APIENTRY EndScene_hook(IDirect3DDevice9* pDevice)
 	{
 		UINT BestTarget = -1;
 		DOUBLE fClosestPos = 99999;
-		hpbarX = 0.0f;
+		//hpbarX = 0.0f;
 
 		for (unsigned int i = 0; i < AimInfo.size(); i++)
 		{
@@ -445,9 +445,13 @@ HRESULT APIENTRY EndScene_hook(IDirect3DDevice9* pDevice)
 		{
 			hpbarX = AimInfo[BestTarget].vOutX;
 			hpbarY = AimInfo[BestTarget].vOutY;
+			defaulthpbarX = AimInfo[BestTarget].vOutX;
+			defaulthpbarY = AimInfo[BestTarget].vOutY;
 
-			DrawString(pFont, 200, 200, White, "%.2f", hpbarX);
-			DrawString(pFont, 200, 220, White, "%.2f", hpbarY);
+			//DrawString(pFont, 200, 200, White, "%.2f", defaulthpbarX);
+			//DrawString(pFont, 200, 220, White, "%.2f", defaulthpbarY);
+
+			//isinrangeWX = hpbarX;
 
 			//if mouse is left from target
 			if (AimInfo[BestTarget].vOutX > (ScreenCenterX)) {
@@ -484,7 +488,12 @@ HRESULT APIENTRY EndScene_hook(IDirect3DDevice9* pDevice)
 			}
 		}
 		else
+		{
 			hpbarX = 0.0f;
+			hpbarY = 0.0f;
+			defaulthpbarX = 0.0f;
+			defaulthpbarY = 0.0f;
+		}
 		//hpbaronscreen = false;
 	}
 	AimInfo.clear();
@@ -532,8 +541,11 @@ HRESULT APIENTRY EndScene_hook(IDirect3DDevice9* pDevice)
 			lvlsymX = AimInfo2[BestTarget].vOutX;
 			lvlsymY = AimInfo2[BestTarget].vOutY;
 
-			//DrawString(pFont, 200, 200, White, "%.2f", lvlsymX);
-			//DrawString(pFont, 200, 220, White, "%.2f", lvlsymY);
+			//DrawString(pFont, 200, 240, Green, "%.2f", lvlsymX);
+			//DrawString(pFont, 200, 260, Green, "%.2f", lvlsymY);
+
+			DrawString(pFont, 200, 240, Green, "%.2f", defaulthpbarX-lvlsymX);
+			DrawString(pFont, 200, 260, Green, "%.2f", defaulthpbarY-lvlsymY);
 
 			double DistX = AimInfo2[BestTarget].vOutX - ScreenCenterX;
 			double DistY = AimInfo2[BestTarget].vOutY - ScreenCenterY;
@@ -545,10 +557,20 @@ HRESULT APIENTRY EndScene_hook(IDirect3DDevice9* pDevice)
 			//if (lvlsymX >= hpbarX - countnum && lvlsymX <= hpbarX + countnum && lvlsymY >= hpbarY - countnum && lvlsymY <= hpbarY + countnum)//63
 			//if (hpbarX >= lvlsymX - countnum && hpbarX <= lvlsymX + countnum && hpbarY >= lvlsymY - countnum && hpbarY <= lvlsymY + countnum)
 			//if hpbar out of range, do nothing
-			DrawString(pFont, 200, 240, Red, "%.2f", hpbarX);
-			DrawString(pFont, 200, 260, Red, "%.2f", hpbarY);
-			if(hpbarX > 0 && hpbarY > 0)
+			//DrawString(pFont, 200, 240, Red, "%.2f", hpbarX);
+			//DrawString(pFont, 200, 260, Red, "%.2f", hpbarY);
+
+			//isinrangeRX = hpbarX;
+
+			//if(hpbarX > 0 && hpbarY > 0)
+			//if (hpbarX > 0 && defaulthpbarX < hpbarX)
+			//if (hpbarX > 0 && defaulthpbarY == hpbarY)
 			if (GetAsyncKeyState(Daimkey) & 0x8000)
+			//if (hpbarX > 0 && hpbarY > 0 && defaulthpbarY == hpbarY && defaulthpbarX == hpbarX+56.0f)
+			//if only green on screen dont aim
+			//if (hpbarX > 0 && hpbarY > 0 && defaulthpbarY >= hpbarY && defaulthpbarX >= hpbarX-60.0f||defaulthpbarX<= hpbarX-60.0f)
+			if (hpbarX > 0 && hpbarY > 0 && defaulthpbarY - lvlsymY > 0.0f && defaulthpbarY - lvlsymY < 50.0f) //&& defaulthpbarX - lvlsymX <= -56.0f || defaulthpbarX - lvlsymX <= 56.0f
+			//if (GetAsyncKeyState(Daimkey) & 0x8000)
 				mouse_event(MOUSEEVENTF_MOVE, (int)DistX, (int)DistY, 0, NULL); //would go down is target is far 
 
 		}
@@ -587,6 +609,7 @@ HRESULT APIENTRY EndScene_hook(IDirect3DDevice9* pDevice)
 
 HRESULT APIENTRY SetTexture_hook(IDirect3DDevice9* pDevice, DWORD Sampler, IDirect3DBaseTexture9 *pTexture)
 {
+	sSampler = Sampler;
 	//Stride == 24 && vSize == 352 && pSize == 1084 && decl->Type == 2 && numElements == 4 && mStartRegister == 11 && mVector4fCount == 1 && sWidth == 32 && sHeight == 32
 	//if (Stride == 24 && Sampler == 0 && pTexture)
 	if(Stride == 24 && vSize == 352 && pSize <= 628 && decl->Type == 2 && numElements == 4 && mStartRegister == 11 && mVector4fCount == 1 && pTexture) //why is pS req

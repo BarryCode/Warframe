@@ -67,13 +67,15 @@ bool FirstInit = false; //init once
 //vdesc.Size
 //D3DVERTEXBUFFER_DESC vdesc;
 
+DWORD sSampler;
+
 //viewport
 D3DVIEWPORT9 Viewport; //use this viewport
 float ScreenCenterX;
 float ScreenCenterY;
 
 //aim
-float lvlsymX, lvlsymY, hpbarX, hpbarY;
+float lvlsymX, lvlsymY, hpbarX, hpbarY, defaulthpbarX, defaulthpbarY;
 
 IDirect3DIndexBuffer9* ppIndexData;
 D3DINDEXBUFFER_DESC iDesc;
