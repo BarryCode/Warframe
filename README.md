@@ -1,6 +1,6 @@
 # Warframe D3D Source x86 & x64 
 
-(&#x1F34F;): 🍏 This is no longer updated, go here for D3D11 version: https://github.com/DrNseven/D3D11-Aimbot-Warframe
+&#x1F34F; This is no longer updated, go here for D3D11 version: https://github.com/DrNseven/D3D11-Aimbot-Warframe
 
 How to compile:
 - open wfdxhook.vcxproj (not wfdxhook.vcxproj.filters) with Visual Studio Community 2017 (..\Microsoft Visual Studio\2017\Community\Common7\IDE\devenv.exe)
